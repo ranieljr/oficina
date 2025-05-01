@@ -1,0 +1,14 @@
+# Ignorar o ambiente virtual Python
+venv/
+
+# Node modules do React
+frontend/node_modules/
+frontend/build/
+
+# __pycache__ do Python
+**/__pycache__/
+
+# Arquivos temporários
+*.log
+*.pyc
+.DS_Store
