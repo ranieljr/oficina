@@ -11,7 +11,7 @@ manutencoes_bp = Blueprint("manutencoes_bp", __name__)
 # Decorator placeholder para simular verificação de role (substituir por real)
 def role_required(role):
     def decorator(f):
-        # @wraps(f) # Usar se importar wraps de functools
+        @wraps(f) # Usar se importar wraps de functools
         def decorated_function(*args, **kwargs):
             # Lógica de verificação de role (ex: verificar current_user.role)
             # Por agora, permite tudo para demonstração
@@ -21,7 +21,7 @@ def role_required(role):
     return decorator
 
 # Rota para criar uma nova manutenção (Gestor, Mecânico)
-@manutencoes_bp.route("/manutencoes", methods=["POST"])
+@manutencoes_bp.route("/api/manutencoes", methods=["GET", "POST"])
 # @login_required
 # @role_required(["gestor", "mecanico"]) # Permitir gestor e mecânico
 def create_manutencao():
@@ -136,7 +136,7 @@ def create_manutencao():
         return jsonify({"message": f"Erro interno ao registrar manutenção. Contate o suporte."}), 500
 
 # Rota para listar manutenções (com filtros) (Gestor, Mecânico, Administrador)
-@manutencoes_bp.route("/manutencoes", methods=["GET"])
+@manutencoes_bp.route("/api/manutencoes", methods=["GET"])
 # @login_required
 def get_manutencoes():
     try:
@@ -202,7 +202,7 @@ def get_manutencao(id):
          return jsonify({"message": f"Erro ao buscar manutenção: {e}"}), 500
 
 # Rota para atualizar uma manutenção (Apenas Gestor)
-@manutencoes_bp.route("/manutencoes/<int:id>", methods=["PUT"])
+@manutencoes_bp.route("/api/manutencoes/<int:id>", methods=["PUT"])
 # @login_required
 @role_required("gestor")
 def update_manutencao(id):
@@ -246,7 +246,7 @@ def update_manutencao(id):
         return jsonify({"message": f"Erro ao atualizar manutenção: {e}"}), 500
 
 # Rota para buscar histórico de manutenções por máquina (Gestor, Mecânico, Administrador)
-@manutencoes_bp.route("/maquinas/<int:maquina_id>/manutencoes", methods=["GET"])
+@manutencoes_bp.route("/api/maquinas/<int:maquina_id>/manutencoes", methods=["GET"])
 # @login_required
 def get_manutencoes_por_maquina(maquina_id):
     try:
@@ -275,3 +275,16 @@ def get_manutencoes_por_maquina(maquina_id):
     except Exception as e:
         return jsonify({"message": f"Erro ao buscar histórico de manutenções: {e}"}), 500
 
+# Rota para excluir uma manutenção (Apenas Gestor)
+@manutencoes_bp.route("/<int:id>", methods=["DELETE"])
+# @login_required
+@role_required("gestor")
+def delete_manutencao(id):
+    try:
+        manutencao = Manutencao.query.get_or_404(id)
+        db.session.delete(manutencao)
+        db.session.commit()
+        return jsonify({"message": "Manutenção excluída com sucesso"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Erro ao excluir manutenção: {e}"}), 500

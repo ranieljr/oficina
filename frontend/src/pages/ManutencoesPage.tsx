@@ -26,6 +26,21 @@ interface Manutencao {
   custo: number | null;
 }
 
+// Função para deletar manutenção
+const handleDeleteManutencao = async (id: number) => {
+  const confirmacao = window.confirm("Tem certeza que deseja excluir esta manutenção?");
+  if (!confirmacao) return;
+
+  try {
+    await axios.delete(`/api/manutencoes/${id}`);
+    alert("Manutenção excluída com sucesso.");
+    setManutencoes((prev) => prev.filter((m) => m.id !== id));
+  } catch (err: any) {
+    console.error("Erro ao excluir manutenção:", err);
+    alert("Erro ao excluir manutenção. Tente novamente.");
+  }
+};
+
 // Interface para os dados da máquina (para o filtro)
 interface MaquinaFiltro {
   id: number;
@@ -62,7 +77,7 @@ const ManutencoesPage = () => {
       if (filterEndDate) params.append("end_date", filterEndDate);
 
       // TODO: Adicionar headers de autenticação se necessário
-      const response = await axios.get<Manutencao[]>("/api/manutencoes", { params });
+      const response = await axios.get("/api/manutencoes", { params });
       const data = response.data;
       if (Array.isArray(data)) {
         setManutencoes(data);
@@ -70,6 +85,7 @@ const ManutencoesPage = () => {
         setManutencoes(data.manutencoes);
       } else {
         console.warn("Formato de resposta inesperado:", data);
+        setError("Erro ao carregar máquinas: resposta inesperada");
         setManutencoes([]);
       }
     } catch (err: any) {
@@ -84,14 +100,22 @@ const ManutencoesPage = () => {
   useEffect(() => {
     const fetchMaquinasParaFiltro = async () => {
       try {
-        const response = await axios.get<MaquinaFiltro[]>("/api/maquinas"); // Assume que a API retorna id, nome, numero_frota
-        setMaquinasFiltro(response.data);
-      } catch (err) {
-        console.error("Erro ao buscar máquinas para filtro:", err);
+        const response = await axios.get("/api/maquinas");
+        const data = response.data;
+          if (Array.isArray(data)) {
+            setMaquinasFiltro(data);
+          } else if (Array.isArray(data.maquinas)) {
+            setMaquinasFiltro(data.maquinas);
+          } else {
+            console.warn("Formato de resposta inesperado em /api/maquinas:", data);
+            setMaquinasFiltro([]); // evita o erro no map
+          }
+        } catch (err) {
+          console.error("Erro ao buscar máquinas para filtro:", err);
         // Não define erro principal, pois a lista de manutenções é mais crítica
-      }
-    };
-    fetchMaquinasParaFiltro();
+        }
+      };
+      fetchMaquinasParaFiltro();
   }, []);
 
   // Efeito para ler filtro inicial da URL
@@ -297,8 +321,9 @@ const ManutencoesPage = () => {
                   <TableCell>{man.custo !== null ? `R$ ${man.custo.toFixed(2).replace(".", ",")}` : "-"}</TableCell>
                   <TableCell className="text-right space-x-1">
                     {canEdit && (
+                      <>
                       <ManutencaoFormModal
-                        manutencaoToEdit={man} // Edit mode
+                        manutencaoToEdit={man}
                         onSuccess={handleModalSuccess}
                         triggerButton={
                           <Button variant="outline" size="sm" title="Editar Manutenção">
@@ -306,9 +331,18 @@ const ManutencoesPage = () => {
                           </Button>
                         }
                       />
-                    )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        title="Excluir Manutenção"
+                        onClick={() => handleDeleteManutencao(man.id)}
+                      >
+                        Excluir
+                      </Button>
+                    </>
+                  )}
                   </TableCell>
-                </TableRow>
+                  </TableRow>
               ))
             ) : (
               <TableRow>

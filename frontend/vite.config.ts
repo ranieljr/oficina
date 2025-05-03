@@ -10,14 +10,18 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Equivalent to --host CLI flag
-    port: 5174, // Specify the port to avoid conflicts if 5173 is used
-    strictPort: true, // Ensure it uses port 5174
+    host: true,
+    port: 5174,
+    strictPort: true,
     hmr: {
-        // Necessary for HMR through proxy
-        clientPort: 5173
+      clientPort: 5174, // igual à porta do Vite
     },
-    allowedHosts: ["http://127.0.0.1:5000/"]
-  }
-})
-
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+});

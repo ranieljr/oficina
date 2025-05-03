@@ -77,18 +77,27 @@ const ManutencaoFormModal: React.FC<ManutencaoFormModalProps> = ({ manutencaoToE
   useEffect(() => {
     const fetchMaquinas = async () => {
       try {
-        const response = await axios.get<MaquinaSelect[]>('/api/maquinas'); // Assuming API returns id, nome, numero_frota, tipo_controle
-        setMaquinas(response.data);
+        const response = await axios.get('/api/maquinas');
+        const data = response.data;
+  
+        if (Array.isArray(data)) {
+          setMaquinas(data);
+        } else if (Array.isArray(data.maquinas)) {
+          setMaquinas(data.maquinas);
+        } else {
+          console.warn("Formato de resposta inesperado em /api/maquinas:", data);
+          setMaquinas([]);
+        }
       } catch (err) {
         console.error("Erro ao buscar máquinas para o formulário:", err);
         setError("Não foi possível carregar a lista de máquinas.");
       }
     };
-    if (isOpen) { // Fetch only when modal opens
-        fetchMaquinas();
+    if (isOpen) {
+      fetchMaquinas();
     }
   }, [isOpen]);
-
+  
   // Helper to format date for datetime-local input
   const formatDateTimeLocal = (isoString: string | null | undefined): string => {
     if (!isoString) return '';

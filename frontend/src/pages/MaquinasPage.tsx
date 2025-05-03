@@ -40,7 +40,7 @@ const MaquinasPage = () => {
     setError(null);
     try {
       // TODO: Adicionar headers de autenticação se necessário
-      const response = await axios.get<Maquina[]>("/api/maquinas");
+      const response = await axios.get("/api/maquinas");
       setMaquinas(response.data);
       // Apply filters immediately after fetching
       filterAndSetMaquinas(response.data, searchTerm, filterStatus);
