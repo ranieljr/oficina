@@ -22,7 +22,7 @@ CORS(app, resources={
     r'/export/*': {"origins": "*"}
 })
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:RANjun02!@localhost/laufdb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://laufuser:B4zM4nFf0hu4zP8mqG3XNRhZboAVRqKQ@dpg-d0bqilpr0fns73dp0kag-a.oregon-postgres.render.com/laufdb'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config.from_object(Config)
