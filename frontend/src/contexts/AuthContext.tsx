@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import axios from 'axios';
 
 // Configura a URL base para todas as requisições Axios
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = 'process.env.REACT_APP_API_URL + '/api/auth/login';
 
 // Define a interface para o objeto de usuário
 interface User {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const response = await axios.post('/api/auth/login', { username, password });
+      const response = await `${process.env.REACT_APP_API_URL || ''}/api/auth/login`, payload, { username, password });
       // TODO: Armazenar token/sessão (ex: localStorage.setItem('authToken', response.data.token));
       const userData: User = {
           id: response.data.user_id,

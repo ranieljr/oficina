@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "proxy": "http://localhost:5000",
+  "proxy": "process.env.REACT_APP_API_URL + '/api/auth/login'",
   "scripts": {
     "start": "react-scripts start",
     "test": "react-scripts test",
