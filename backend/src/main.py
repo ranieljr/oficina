@@ -42,6 +42,7 @@ app.config.from_object(Config)
 
 # Inicializa com os modelos já importados
 db.init_app(app)
+db = SQLAlchemy(app)
 
 # Registra rotas
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
