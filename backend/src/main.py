@@ -60,3 +60,13 @@ def add_no_cache_headers(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
+@app.route("/criar-usuario")
+def criar_usuario():
+    from models.models import Usuario, db
+
+    u = Usuario(nome="admin")
+    u.set_senha("1234")
+    db.session.add(u)
+    db.session.commit()
+    return "Usuário criado"
