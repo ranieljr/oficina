@@ -18,7 +18,7 @@ from src.routes.export import export_bp
 from urllib.parse import urlparse
 
 # lê a URL do banco definida no Render
-database_url = os.getenv("DATABASE_URL", "")
+database_url = os.getenv('INTERNAL_DATABASE_URL') or os.getenv('EXTERNAL_DATABASE_URL')
 if not database_url:
     raise RuntimeError(
         "A variável DATABASE_URL não está definida. "
