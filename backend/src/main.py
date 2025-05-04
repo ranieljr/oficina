@@ -15,6 +15,19 @@ from src.routes.auth import auth_bp
 from src.routes.maquinas import maquinas_bp
 from src.routes.manutencoes import manutencoes_bp
 from src.routes.export import export_bp
+from urllib.parse import urlparse
+
+# lê a URL do banco definida no Render
+database_url = os.getenv("DATABASE_URL", "")
+if not database_url:
+    raise RuntimeError(
+        "A variável DATABASE_URL não está definida. "
+        "Use INTERNAL_DATABASE_URL em produção e o EXTERNAL_DATABASE_URL para dev local."
+    )
+
+# Render fornece algo como "postgres://…", mas o SQLAlchemy espera "postgresql://…"
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 CORS(app, resources={
@@ -22,7 +35,7 @@ CORS(app, resources={
     r'/export/*': {"origins": "*"}
 })
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://laufuser:B4zM4nFf0hu4zP8mqG3XNRhZboAVRqKQ@dpg-d0bqilpr0fns73dp0kag-a.oregon-postgres.render.com/laufdb'
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config.from_object(Config)
