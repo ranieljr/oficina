@@ -8,6 +8,7 @@
     "start": "react-scripts start",
     "test": "react-scripts test",
     "dev": "vite --host",
+    "build": "react-scripts build",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
