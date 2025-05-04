@@ -8,7 +8,7 @@ sys.path.insert(0, BASE_DIR)
 
 from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from config import Config
+from src.config import Config
 from flask_cors import CORS
 from src.models.models import db, Maquina, Manutencao, Usuario
 from src.routes.auth import auth_bp
@@ -77,3 +77,7 @@ def add_no_cache_headers(response):
 @app.route("/health", methods=["GET"])
 def health():
     return {"status": "ok"}, 200
+
+@app.route("/")
+def index():
+    return "Backend online"

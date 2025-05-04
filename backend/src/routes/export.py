@@ -9,7 +9,7 @@ from functools import wraps
 
 WKHTMLTOPDF_PATH = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
 
-config = pdfkit.configuration(wkhtmltopdf='/usr/bin/wkhtmltopdf')
+config = pdfkit.configuration(wkhtmltopdf=r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
 pdf = pdfkit.from_string("Hello PDF", False, configuration=config)
 
 export_bp = Blueprint("export_bp", __name__)
