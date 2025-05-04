@@ -9,6 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle, Edit, FileDown } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom'; // Para filtros via URL e navegação
 import ManutencaoFormModal from '@/components/ManutencaoFormModal'; // Importar o modal
+import api from "@/services/api";
+import { Trash } from 'lucide-react';
 
 // Interface para os dados da manutenção (espelhando o backend)
 interface Manutencao {
@@ -161,7 +163,7 @@ const ManutencoesPage = () => {
     if (filterStartDate) params.append('start_date', filterStartDate);
     if (filterEndDate) params.append('end_date', filterEndDate);
 
-    const url = `/api/export/manutencoes/${format}?${params.toString()}`;
+    const url = `/export/manutencoes/${format}?${params.toString()}`;
 
     try {
       // TODO: Adicionar headers de autenticação se necessário
@@ -200,6 +202,15 @@ const ManutencoesPage = () => {
       }
     }
   };
+
+  async function handleDeleteManutencao(id: number) {
+    try {
+      await api.delete(`/manutencoes/${id}`);
+      setManutencoes(prev => prev.filter(m => m.id !== id)); // <- Aqui o erro acontece se não tiver `setManutencoes`
+    } catch (error) {
+      console.error("Erro ao excluir manutenção:", error);
+    }
+  }
 
 
   return (
@@ -334,10 +345,15 @@ const ManutencoesPage = () => {
                       <Button
                         variant="destructive"
                         size="sm"
-                        title="Excluir Manutenção"
-                        onClick={() => handleDeleteManutencao(man.id)}
+                        title="Excluir"
+                        aria-label="Excluir manutenção"
+                        onClick={() => {
+                          if (window.confirm("Deseja realmente excluir esta manutenção?")) {
+                           handleDeleteManutencao(man.id);
+                          }
+                        }}  
                       >
-                        Excluir
+                        <Trash size={14} />
                       </Button>
                     </>
                   )}

@@ -351,7 +351,7 @@ const ManutencaoFormModal: React.FC<ManutencaoFormModalProps> = ({ manutencaoToE
               {fieldErrors.comentario && <p className="text-sm text-red-500 mt-1">{fieldErrors.comentario}</p>}
             </div>
 
-              <div class="space-y-2">
+              <div className="space-y-2">
               <Label htmlFor="responsavel">Responsável pelo Serviço *</Label>
               <Input
                 id="responsavel"

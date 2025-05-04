@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, request, jsonify, Response, make_response
+from flask import Blueprint, request, jsonify, Response, make_response, send_file
 from io import BytesIO
 #from weasyprint import HTML, CSS
 from src.models.models import db, Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
@@ -7,7 +7,7 @@ from datetime import datetime
 from functools import wraps
 import pandas as pd
 import pdfkit
-from flask import send_file
+
 # TODO: Importar decorator de autenticação/autorização
 # from .auth import login_required, role_required # Exemplo
 
@@ -50,10 +50,8 @@ def _get_filtered_manutencoes(args):
 
 # Rota para exportar manutenções para Excel (Gestor, Administrador) - TEMPORARIAMENTE DESABILITADA
 @export_bp.route("/export/manutencoes/excel", methods=["GET"])
-# @login_required  # pode manter comentado se ainda não implementou login
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
-
     try:
         manutencoes = _get_filtered_manutencoes(request.args)
 
@@ -79,25 +77,26 @@ def export_manutencoes_excel():
 
         df = pd.DataFrame(data_to_export)
 
-        # Cria um buffer na memória para o arquivo Excel
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Manutencoes')
         output.seek(0)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"export_manutencoes_{timestamp}.xlsx"
+        filename = f"export_manutencoes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
 
-        return Response(
+        print("Exportando Excel com", len(df), "registros.")
+
+        return send_file(
             output,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment;filename={filename}"}
+            as_attachment=True,
+            download_name=filename,       
         )
 
-    except ValueError as e: # Captura erro de enum inválido no filtro
+    except ValueError as e:
         return jsonify({"message": f"Valor de filtro inválido: {e}"}), 400
     except Exception as e:
-        print(f"Erro ao exportar para Excel: {e}") # Log do erro
+        print(f"Erro ao exportar para Excel: {e}")
         return jsonify({"message": f"Erro ao exportar manutenções para Excel: {e}"}), 500
 
 # Rota para exportar manutenções para PDF (Gestor, Administrador) - TEMPORARIAMENTE DESABILITADA

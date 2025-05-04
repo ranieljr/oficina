@@ -1,9 +1,13 @@
+
 import os
 import sys
-# DON'T CHANGE THIS !!!
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+# ✅ Garante que a pasta 'backend' esteja no PYTHONPATH
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, BASE_DIR)
 
 from flask import Flask, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from src.models.models import db, Maquina, Manutencao, Usuario
 from src.routes.auth import auth_bp
@@ -12,25 +16,36 @@ from src.routes.manutencoes import manutencoes_bp
 from src.routes.export import export_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-CORS(app, resources={r"/api/*": {"origins": "*"}}) # Temporariamente permitir todas as origens para teste
+CORS(app, resources={
+    r'/api/*': {"origins": "*"},
+    r'/export/*': {"origins": "*"}
+})
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:RANjun02!@localhost/laufdb'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# Inicializa com os modelos já importados
+db.init_app(app)
+
+# Registra rotas
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(maquinas_bp, url_prefix='/api')
 app.register_blueprint(manutencoes_bp, url_prefix="/api")
 app.register_blueprint(export_bp, url_prefix='/export')
 
-# uncomment if you need to use database
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{os.getenv('DB_USERNAME', 'root')}:{os.getenv('DB_PASSWORD', 'RANjun02!')}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('DB_NAME', 'mydb')}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db.init_app(app)
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+    print("Conexão funcionando e tabelas criadas!")
+except Exception as e:
+    print("Erro:", e)
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
 def serve(path):
-    return f"Serving: {path}"
+    if path.startswith("api/"):
+        return {"message": "Rota não encontrada"}, 404
+    return send_from_directory(app.static_folder, "index.html")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
