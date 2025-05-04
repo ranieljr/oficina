@@ -9,10 +9,8 @@ from functools import wraps
 
 WKHTMLTOPDF_PATH = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
 
-if not os.path.isfile(WKHTMLTOPDF_PATH):
-    raise RuntimeError(f"wkhtmltopdf não encontrado em {WKHTMLTOPDF_PATH}")
-
-PDFKIT_CONFIG = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
+config = pdfkit.configuration(wkhtmltopdf='/usr/bin/wkhtmltopdf')
+pdf = pdfkit.from_string("Hello PDF", False, configuration=config)
 
 export_bp = Blueprint("export_bp", __name__)
 
