@@ -18,7 +18,12 @@ from src.routes.export import export_bp
 from urllib.parse import urlparse
 
 # lê a URL do banco definida no Render
-database_url = os.getenv('INTERNAL_DATABASE_URL') or os.getenv('EXTERNAL_DATABASE_URL')
+database_url = (
+    os.getenv('DATABASE_URL') 
+    or os.getenv('INTERNAL_DATABASE_URL')
+    or os.getenv('EXTERNAL_DATABASE_URL')
+)
+
 if not database_url:
     raise RuntimeError(
         "A variável DATABASE_URL não está definida. "
@@ -41,8 +46,8 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config.from_object(Config)
 
 # Inicializa com os modelos já importados
-db.init_app(app)
 db = SQLAlchemy(app)
+db.init_app(app)
 
 # Registra rotas
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -67,7 +72,7 @@ def serve(path):
     return send_from_directory(app.static_folder, "index.html")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run()
 
 def add_no_cache_headers(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
