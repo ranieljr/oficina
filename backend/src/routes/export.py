@@ -1,134 +1,132 @@
-# -*- coding: utf-8 -*-
-from flask import Blueprint, request, jsonify, Response, make_response, send_file
+from flask import Blueprint, request, jsonify, Response
 from io import BytesIO
-#from weasyprint import HTML, CSS
-from src.models.models import db, Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
 from datetime import datetime
-from functools import wraps
 import pandas as pd
+import os
 import pdfkit
+from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
+from functools import wraps
 
-# TODO: Importar decorator de autenticação/autorização
-# from .auth import login_required, role_required # Exemplo
+WKHTMLTOPDF_PATH = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+
+if not os.path.isfile(WKHTMLTOPDF_PATH):
+    raise RuntimeError(f"wkhtmltopdf não encontrado em {WKHTMLTOPDF_PATH}")
+
+PDFKIT_CONFIG = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
 export_bp = Blueprint("export_bp", __name__)
 
-# Decorator placeholder para simular verificação de role (substituir por real)
 def role_required(roles):
-    if not isinstance(roles, list): roles = [roles]
+    if not isinstance(roles, list):
+        roles = [roles]
     def decorator(f):
-        @wraps(f) # Usar se importar wraps de functools
+        @wraps(f)
         def decorated_function(*args, **kwargs):
-            # Lógica de verificação de role (ex: verificar current_user.role)
-            # Por agora, permite tudo para demonstração
-            print(f"Verificando roles: {roles}") # Log de simulação
-            # Substituir pela lógica real de verificação de roles
-            # user_role = getattr(current_user, 'role', None)
-            # if not user_role or user_role.value not in roles:
-            #     return jsonify({"message": "Acesso não autorizado para esta operação"}), 403
+            print(f"Verificando roles: {roles}")
             return f(*args, **kwargs)
         return decorated_function
     return decorator
 
 def _get_filtered_manutencoes(args):
-    """Helper function to get filtered maintenance data based on request args."""
-    query = Manutencao.query.join(Maquina) # Join para poder ordenar/filtrar por nome da máquina se necessário
-
-    if "maquina_id" in args and args.get("maquina_id") != 'todas':
-        query = query.filter(Manutencao.maquina_id == args.get("maquina_id"))
-    if "tipo_manutencao" in args and args.get("tipo_manutencao") != 'todos':
-        query = query.filter(Manutencao.tipo_manutencao == TipoManutencaoEnum(args.get("tipo_manutencao")))
-    if "start_date" in args and args.get("start_date"):
-        start_date = datetime.strptime(args.get("start_date"), "%Y-%m-%d")
-        query = query.filter(Manutencao.data_entrada >= start_date)
-    if "end_date" in args and args.get("end_date"):
-        # Adiciona 1 dia para incluir a data final na consulta
-        end_date = datetime.strptime(args.get("end_date"), "%Y-%m-%d")
-        query = query.filter(Manutencao.data_entrada < end_date + pd.Timedelta(days=1))
-
+    query = Manutencao.query.join(Maquina)
+    maquina_id = args.get("maquina_id")
+    if maquina_id and maquina_id.lower() != 'todas':
+        query = query.filter(Manutencao.maquina_id == int(maquina_id))
+    tipo = args.get("tipo_manutencao")
+    if tipo and tipo.lower() != 'todos':
+        query = query.filter(Manutencao.tipo_manutencao == TipoManutencaoEnum(tipo))
+    start_date = args.get("start_date")
+    if start_date:
+        dt_inicio = datetime.strptime(start_date, "%Y-%m-%d")
+        query = query.filter(Manutencao.data_entrada >= dt_inicio)
+    end_date = args.get("end_date")
+    if end_date:
+        dt_fim = datetime.strptime(end_date, "%Y-%m-%d")
+        query = query.filter(Manutencao.data_entrada < dt_fim + pd.Timedelta(days=1))
     return query.order_by(Manutencao.data_entrada.desc()).all()
 
-# Rota para exportar manutenções para Excel (Gestor, Administrador) - TEMPORARIAMENTE DESABILITADA
-@export_bp.route("/export/manutencoes/excel", methods=["GET"])
+@export_bp.route("/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
     try:
         manutencoes = _get_filtered_manutencoes(request.args)
-
         if not manutencoes:
-            return jsonify({"message": "Nenhuma manutenção encontrada para os filtros selecionados."}), 404
+            return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-        data_to_export = []
-        for man in manutencoes:
-            data_to_export.append({
-                "ID Manutenção": man.id,
-                "Máquina": man.maquina.nome,
-                "Nº Frota": man.maquina.numero_frota,
-                "Data Entrada": man.data_entrada.strftime("%d/%m/%Y %H:%M") if man.data_entrada else None,
-                "Data Saída": man.data_saida.strftime("%d/%m/%Y %H:%M") if man.data_saida else None,
-                "Horímetro/Hodômetro": man.horimetro_hodometro,
-                "Tipo Manutenção": man.tipo_manutencao.value,
-                "Categoria Serviço": man.categoria_servico.value,
-                "Outros (Espec.)": man.categoria_outros_especificacao if man.categoria_servico == CategoriaServicoEnum.OUTROS else None,
-                "Comentário": man.comentario,
-                "Responsável": man.responsavel_servico,
-                "Custo (R$)": man.custo
-            })
+        # monta DataFrame...
+        df = pd.DataFrame([
+        {
+            "ID": m.id,
+            "Máquina": m.maquina.nome,
+            "Frota": m.maquina.numero_frota,
+            "Entrada": m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
+            "Saída": m.data_saida.strftime("%d/%m/%Y %H:%M") if m.data_saida else "",
+            "Horímetro/Hodômetro": m.horimetro_hodometro,
+            "Tipo": m.tipo_manutencao.value,
+            "Categoria de Serviço": m.categoria_servico.value,
+            "Específico (se outros)": m.categoria_outros_especificacao if m.categoria_servico == CategoriaServicoEnum.OUTROS else None,
+            "Comentário": m.comentario,
+            "Responsável": m.responsavel_servico,
+            "Custo (R$)": m.custo
+        }
+        for m in manutencoes
+        ])
+        # escreve em memória
+        buf = BytesIO()
+        with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Manutenções")
+        buf.seek(0)
+        data = buf.getvalue()
 
-        df = pd.DataFrame(data_to_export)
+        print("DEBUG XLSX bytes:", data[:4])  # deve ser b'PK\x03\x04'
 
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Manutencoes')
-        output.seek(0)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        headers = {
+            "Content-Type":  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": f"attachment; filename=export_manutencoes_{ts}.xlsx",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+        return Response(data, headers=headers)
 
-        filename = f"export_manutencoes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-
-        print("Exportando Excel com", len(df), "registros.")
-
-        return send_file(
-            output,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            as_attachment=True,
-            download_name=filename,       
-        )
-
-    except ValueError as e:
-        return jsonify({"message": f"Valor de filtro inválido: {e}"}), 400
     except Exception as e:
-        print(f"Erro ao exportar para Excel: {e}")
-        return jsonify({"message": f"Erro ao exportar manutenções para Excel: {e}"}), 500
+        import traceback; traceback.print_exc()
+        return jsonify({"message": f"Erro interno (Excel): {e}"}), 500
 
-# Rota para exportar manutenções para PDF (Gestor, Administrador) - TEMPORARIAMENTE DESABILITADA
-@export_bp.route("/export/manutencoes/pdf", methods=["GET"])
-# @login_required
+@export_bp.route("/manutencoes/pdf", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_pdf():
-    try:
-        manutencoes = _get_filtered_manutencoes(request.args)
+    manutencoes = _get_filtered_manutencoes(request.args)
+    if not manutencoes:
+        return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-        if not manutencoes:
-            return jsonify({"message": "Nenhuma manutenção encontrada para os filtros selecionados."}), 404
+    # Monta HTML
+    html = "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:8px;}</style></head><body>"
+    html += "<h2>Relatório de Manutenções</h2><table><thead><tr>"
+    html += "<th>Máquina</th><th>Frota</th><th>Entrada</th><th>Saída</th><th>Tipo</th><th>Categoria</th><th>Responsável</th><th>Custo</th>"
+    html += "</tr></thead><tbody>"
+    for m in manutencoes:
+        html += (
+            f"<tr><td>{m.maquina.nome}</td>"
+            f"<td>{m.maquina.numero_frota}</td>"
+            f"<td>{m.data_entrada.strftime('%d/%m/%Y')}</td>"
+            f"<td>{m.data_saida.strftime('%d/%m/%Y') if m.data_saida else '-'}</td>"
+            f"<td>{m.tipo_manutencao.value}</td>"
+            f"<td>{m.categoria_servico.value}</td>"
+            f"<td>{m.responsavel_servico}</td>"
+            f"<td>{m.custo or '-'}</td></tr>"
+        )
+    html += "</tbody></table></body></html>"
 
-        # Gerar HTML para o PDF
-        html = "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}</style></head><body>"
-        html += "<h2>Relatório de Manutenções</h2>"
-        html += "<table><thead><tr><th>Máquina</th><th>Frota</th><th>Entrada</th><th>Saída</th><th>Tipo</th><th>Responsável</th><th>Custo</th></tr></thead><tbody>"
+    # Gera PDF bytes
+    pdf_bytes = pdfkit.from_string(html, False, configuration=PDFKIT_CONFIG)
 
-        for man in manutencoes:
-            html += f"<tr><td>{man.maquina.nome}</td><td>{man.maquina.numero_frota}</td><td>{man.data_entrada.strftime('%d/%m/%Y')}</td><td>{man.data_saida.strftime('%d/%m/%Y') if man.data_saida else '-'}</td><td>{man.tipo_manutencao.value}</td><td>{man.responsavel_servico}</td><td>{man.custo or '-'}</td></tr>"
-
-        html += "</tbody></table></body></html>"
-
-        output_path = "relatorio_manutencoes.pdf"
-        pdfkit.from_string(html, output_path)
-
-        return send_file(output_path, mimetype='application/pdf', download_name=output_path)
-
-    except Exception as e:
-        print(f"Erro ao gerar PDF: {e}")
-        return jsonify({"message": f"Erro ao exportar PDF: {e}"}), 500
-# TODO: Adicionar rotas similares para exportar dados de MÁQUINAS (Excel e PDF)
-# Ex: /export/maquinas/excel e /export/maquinas/pdf
-
-
+    headers = {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "attachment; filename=relatorio_manutencoes.pdf",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+    return Response(pdf_bytes, headers=headers)

@@ -23,6 +23,7 @@ CORS(app, resources={
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:RANjun02!@localhost/laufdb'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 # Inicializa com os modelos já importados
 db.init_app(app)
@@ -49,3 +50,9 @@ def serve(path):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+def add_no_cache_headers(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
