@@ -25,9 +25,11 @@ app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:RANjun02!@localhost/laufdb'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config.from_object(Config)
 
 # Inicializa com os modelos já importados
 db.init_app(app)
+db = SQLAlchemy(app)
 
 # Registra rotas
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
