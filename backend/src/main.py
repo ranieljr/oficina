@@ -42,6 +42,8 @@ except Exception as e:
     print("Erro:", e)
 
 @app.route("/", defaults={"path": ""})
+def home():
+    return "API online com sucesso!"
 @app.route("/<path:path>")
 def serve(path):
     if path.startswith("api/"):
