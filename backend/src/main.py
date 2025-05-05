@@ -80,3 +80,14 @@ def serve(path):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+    
+@app.after_request
+def disable_caching(response):
+    response.headers.pop("ETag", None)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    # força status 200 mesmo que o cliente envie If-None-Match/Since
+    if response.status_code == 304:
+        response.status_code = 200
+    return response
