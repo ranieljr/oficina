@@ -1,4 +1,5 @@
 # Substituir o conteúdo do from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify
 from src.models.models import db, Maquina, TipoMaquinaEnum, TipoControleEnum, StatusMaquinaEnum
 from datetime import datetime
 from functools import wraps
