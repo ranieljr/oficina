@@ -56,8 +56,13 @@ def export_manutencoes_excel():
 
         # escreve em memória usando openpyxl
         buf = BytesIO()
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="Manutenções")
+        writer = pd.ExcelWriter(buf, engine="xlsxwriter", 
+                                options={'strings_to_urls': False})
+        df.to_excel(writer, index=False, sheet_name="Manutenções")
+        # garante gravação e liberação de recursos
+        writer.close()
+    
+        # reposiciona ponteiro antes de enviar
         buf.seek(0)
 
         filename = f"export_manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
@@ -67,8 +72,9 @@ def export_manutencoes_excel():
             as_attachment=True,
             download_name=filename,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        cache_timeout=0
         )
-
+        
     except Exception as e:
         # imprime o traceback completo no console do Flask
         import traceback; traceback.print_exc()
