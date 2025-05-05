@@ -1,8 +1,10 @@
 // src/api.ts
-import axios from "axios";
+import axios from 'axios';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://lauf-backend.onrender.com'
+const API_URL = import.meta.env.VITE_API_URL 
+  ?? 'https://lauf-backend.onrender.com';
+
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
 });
-
-export default api;

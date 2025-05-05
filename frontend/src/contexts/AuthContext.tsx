@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { api } from '../api'; // Ajuste para apontar ao cliente Axios configurado
+import { api } from '@/services/api'; // Ajuste para apontar ao cliente Axios configurado
 
 // Interface para o objeto de usuário
 interface User {
