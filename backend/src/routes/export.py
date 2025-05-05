@@ -42,7 +42,8 @@ def export_manutencoes_excel():
         ws = workbook.add_worksheet('Manutenções')
 
         # Cabeçalho
-        headers = ['ID','Máquina','Frota','Entrada','Saída','Horímetro','Tipo','Categoria','Específico','Comentário','Responsável','Custo (R$)']
+        headers = ['ID','Máquina','Frota','Entrada','Saída','Horímetro',
+                   'Tipo','Categoria','Específico','Comentário','Responsável','Custo (R$)']
         for col, h in enumerate(headers):
             ws.write(0, col, h)
 
@@ -50,14 +51,14 @@ def export_manutencoes_excel():
         for row_idx, m in enumerate(manutencoes, start=1):
             values = [
                 m.id,
-                m.maquina.nome,
-                m.maquina.numero_frota,
+                m.maquina.nome if m.maquina else '',
+                m.maquina.numero_frota if m.maquina else '',
                 m.data_entrada.strftime('%d/%m/%Y %H:%M') if m.data_entrada else '',
                 m.data_saida.strftime('%d/%m/%Y %H:%M') if m.data_saida else '',
-                m.horimetro_hodometro,
-                m.tipo_manutencao.value,
-                m.categoria_servico.value,
-                m.categoria_outros_especificacao if m.categoria_servico==CategoriaServicoEnum.OUTROS else '',
+                m.horimetro_hodometro or '',
+                m.tipo_manutencao.value if m.tipo_manutencao else '',
+                m.categoria_servico.value if m.categoria_servico else '',
+                m.categoria_outros_especificacao if getattr(m, 'categoria_servico', None) == CategoriaServicoEnum.OUTROS else '',
                 m.comentario or '',
                 m.responsavel_servico or '',
                 m.custo or 0
@@ -71,6 +72,10 @@ def export_manutencoes_excel():
 
         # Debug: tamanho e magic
         data = buf.getvalue()
+
+        current_app.logger.info(f"Excel gerado com {len(data)} bytes")
+        current_app.logger.info(f"Magic bytes: {data[:4]!r}")  # Esperado: b'PK\x03\x04'
+
         filename = f"manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
 
         headers = {
