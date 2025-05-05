@@ -58,7 +58,7 @@ db.init_app(app)
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(maquinas_bp, url_prefix='/api')
 app.register_blueprint(manutencoes_bp, url_prefix='/api')
-app.register_blueprint(export_bp, url_prefix='/export')
+app.register_blueprint(export_bp, url_prefix='/api/export')
 
 # 6) Cria tabelas (apenas se for o seu fluxo)
 with app.app_context():
@@ -72,10 +72,13 @@ def health():
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-def serve(path):
-    if path.startswith('api/'):
-        return {"message": "Rota não encontrada"}, 404
-    return send_from_directory(app.static_folder, 'index.html')
+def serve_react(path):
+    # se for um arquivo estático válido, devolve-o
+    full_path = os.path.join(app.static_folder, path)
+    if path and os.path.exists(full_path):
+        return app.send_static_file(path)
+    # senão devolve o index.html
+    return app.send_static_file('index.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
