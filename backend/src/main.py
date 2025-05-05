@@ -18,11 +18,15 @@ sys.path.insert(0, BASE_DIR)
 logging.basicConfig(level=logging.INFO)
 
 # Cria app
-app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+app = Flask(
+    __name__, 
+    static_folder=os.path.join(os.path.dirname(__file__), 'static'),
+    static_url_path=""
+)
+
 CORS(app, resources={
     r'/api/*': {"origins": "*"}, 
-    r'/export/*': {"origins": "*"}
-})
+    })
 
 # 1) Carrega Config padrão
 app.config.from_object(Config)
@@ -78,7 +82,7 @@ def health():
 def serve_react(path):
     # se for um arquivo estático válido, devolve-o
     full_path = os.path.join(app.static_folder, path)
-    if path and os.path.exists(full_path):
+    if path and os.path.exists(full):
         return app.send_static_file(path)
     # senão devolve o index.html
     return app.send_static_file('index.html')
