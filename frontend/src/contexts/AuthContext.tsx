@@ -75,18 +75,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   // Função de logout
-  const logout = async () => {
-    setLoading(true);
-    try {
-      await api.post('/api/auth/logout');
-    } catch (err) {
-      console.error('Erro no logout:', err);
-    }
-    localStorage.removeItem('authToken');
-    delete api.defaults.headers.common['Authorization'];
-    setUser(null);
-    setLoading(false);
-  };
+  //const logout = async () => {
+    //setLoading(true);
+    //try {
+      //await api.post('/api/auth/logout');
+    //} catch (err) {
+      //console.error('Erro no logout:', err);
+    //}
+    //localStorage.removeItem('authToken');
+    //delete api.defaults.headers.common['Authorization'];
+    //setUser(null);
+    //setLoading(false);
+  //};
 
   // Valor do contexto
   const value: AuthContextType = { user, loading, login, logout };
