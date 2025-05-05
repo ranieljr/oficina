@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import { api } from './api';
 
 // Configura a URL base para todas as requisições Axios
 axios.defaults.baseURL = `${import.meta.env.VITE_API_URL}/api/auth/login`;
@@ -109,3 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+export function useAuth() {
+  const login = async (username: string, password: string) => {
+    const { data } = await api.post('/api/auth/login', { username, password });
+    return data;
+  };
+  return { login };
+}
