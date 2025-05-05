@@ -16,24 +16,25 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
+// Cria o contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hook customizado para usar o contexto de autenticação
+// Hook para consumir o contexto
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuthContext must be used within an AuthProvider');
+    throw new Error('useAuthContext must be used within AuthProvider');
   }
   return context;
 }
 
-// Componente provedor do contexto
+// Provider que engloba a aplicação
 type AuthProviderProps = { children: ReactNode };
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Checa estado de autenticação inicial
+  // Verifica autenticação inicial
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -41,7 +42,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (token) {
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           const resp = await api.get('/api/auth/me');
-          setUser(resp.data.user);
+          const u = resp.data.user;
+          setUser({ id: u.id, username: u.username, role: u.role });
         }
       } catch (err) {
         console.error('Erro ao validar token:', err);
@@ -75,16 +77,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     setLoading(true);
     try {
-      await api.post('/api/auth/logout'); // se existir
-      localStorage.removeItem('authToken');
-      delete api.defaults.headers.common['Authorization'];
-      setUser(null);
-    } catch (err) {
-      console.error('Erro no logout:', err);
-      setUser(null);
-    } finally {
-      setLoading(false);
+      await api.post('/api/auth/logout');
+    } catch {
+      // ignorar erros
     }
+    localStorage.removeItem('authToken');
+    delete api.defaults.headers.common['Authorization'];
+    setUser(null);
+    setLoading(false);
   };
 
   return (
