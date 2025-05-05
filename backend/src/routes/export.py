@@ -71,21 +71,18 @@ def export_manutencoes_excel():
 
         # Debug: tamanho e magic
         data = buf.getvalue()
-        size = len(data)
-        magic = data[:4]
-        current_app.logger.info(f"DEBUG Excel -> bytes: {size}; magic: {magic!r}")
-
-        # Envio
         filename = f"manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
-        return send_file(
-            BytesIO(data),
-            as_attachment=True,
-            download_name=filename,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            conditional=False,
-            cache_timeout=0,
-            add_etags=False
-        )
+
+        headers = {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+
+        return Response(data, headers=headers)
+        
 
     except Exception as e:
         current_app.logger.exception('Falha ao gerar Excel')
