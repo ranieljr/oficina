@@ -124,7 +124,15 @@ def export_manutencoes_excel():
             "Pragma": "no-cache",
             "Expires": "0",
         }
-        return Response(data, headers=headers)
+        resp = Response(data)
+        resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        # remove o ETag caso ainda seja inserido automaticamente
+        resp.headers.pop("ETag", None)
+        return resp
         
     except Exception as e:      
         # imprime o traceback completo no console do Flask
@@ -168,3 +176,4 @@ def export_manutencoes_pdf():
         "Expires": "0",
     }
     return Response(pdf_bytes, headers=headers)
+
