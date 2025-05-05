@@ -89,7 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   //};
 
   // Valor do contexto
-  const value: AuthContextType = { user, loading, login, logout };
+  const value: AuthContextType = { user, loading, login,};
 
   return (
     <AuthContext.Provider value={value}>
