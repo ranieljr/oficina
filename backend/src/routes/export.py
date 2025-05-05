@@ -1,47 +1,19 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, send_file, current_app
 from io import BytesIO
 from datetime import datetime
 import pandas as pd
-import os
-import pdfkit
-from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
 from functools import wraps
-
-# WKHTMLTOPDF_PATH = '/usr/bin/wkhtmltopdf'
-
-# config = pdfkit.configuration(wkhtmltopdf='/usr/bin/wkhtmltopdf')
-#pdf = pdfkit.from_string("Hello PDF", False, configuration=config)
+from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
 
 export_bp = Blueprint("export_bp", __name__)
 
 def role_required(roles):
-    if not isinstance(roles, list):
-        roles = [roles]
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            print(f"Verificando roles: {roles}")
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
+    # seu decorator aqui (igual ao atual)
+    ...
 
 def _get_filtered_manutencoes(args):
-    query = Manutencao.query.join(Maquina)
-    maquina_id = args.get("maquina_id")
-    if maquina_id and maquina_id.lower() != 'todas':
-        query = query.filter(Manutencao.maquina_id == int(maquina_id))
-    tipo = args.get("tipo_manutencao")
-    if tipo and tipo.lower() != 'todos':
-        query = query.filter(Manutencao.tipo_manutencao == TipoManutencaoEnum(tipo))
-    start_date = args.get("start_date")
-    if start_date:
-        dt_inicio = datetime.strptime(start_date, "%Y-%m-%d")
-        query = query.filter(Manutencao.data_entrada >= dt_inicio)
-    end_date = args.get("end_date")
-    if end_date:
-        dt_fim = datetime.strptime(end_date, "%Y-%m-%d")
-        query = query.filter(Manutencao.data_entrada < dt_fim + pd.Timedelta(days=1))
-    return query.order_by(Manutencao.data_entrada.desc()).all()
+    # seus filtros aqui (igual ao atual)
+    ...
 
 @export_bp.route("/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
@@ -51,45 +23,43 @@ def export_manutencoes_excel():
         if not manutencoes:
             return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-        # monta DataFrame...
-        df = pd.DataFrame([
-        {
-            "ID": m.id,
-            "Máquina": m.maquina.nome,
-            "Frota": m.maquina.numero_frota,
-            "Entrada": m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
-            "Saída": m.data_saida.strftime("%d/%m/%Y %H:%M") if m.data_saida else "",
-            "Horímetro/Hodômetro": m.horimetro_hodometro,
-            "Tipo": m.tipo_manutencao.value,
-            "Categoria de Serviço": m.categoria_servico.value,
-            "Específico (se outros)": m.categoria_outros_especificacao if m.categoria_servico == CategoriaServicoEnum.OUTROS else None,
-            "Comentário": m.comentario,
-            "Responsável": m.responsavel_servico,
-            "Custo (R$)": m.custo
-        }
-        for m in manutencoes
-        ])
-        # escreve em memória
+        # monta o DataFrame
+        df = pd.DataFrame([{
+            "ID":             m.id,
+            "Máquina":        m.maquina.nome,
+            "Frota":          m.maquina.numero_frota,
+            "Entrada":        m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
+            "Saída":          m.data_saida.strftime("%d/%m/%Y %H:%M")   if m.data_saida   else "",
+            "Horímetro":      m.horimetro_hodometro,
+            "Tipo":           m.tipo_manutencao.value,
+            "Categoria":      m.categoria_servico.value,
+            "Específico":     (m.categoria_outros_especificacao
+                                 if m.categoria_servico == CategoriaServicoEnum.OUTROS
+                                 else ""),
+            "Comentário":     m.comentario  or "",
+            "Responsável":    m.responsavel_servico or "",
+            "Custo (R$)":     m.custo or 0
+        } for m in manutencoes])
+
+        # escreve em memória usando openpyxl
         buf = BytesIO()
-        with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="Manutenções")
         buf.seek(0)
-        data = buf.getvalue()
 
-        print("DEBUG XLSX bytes:", data[:4])  # deve ser b'PK\x03\x04'
+        filename = f"export_manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
 
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        headers = {
-            "Content-Type":  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Disposition": f"attachment; filename=export_manutencoes_{ts}.xlsx",
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        }
-        return Response(data, headers=headers)
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     except Exception as e:
+        # imprime o traceback completo no console do Flask
         import traceback; traceback.print_exc()
+        # e retorna o JSON pro front
         return jsonify({"message": f"Erro interno (Excel): {e}"}), 500
 
 @export_bp.route("/manutencoes/pdf", methods=["GET"])
