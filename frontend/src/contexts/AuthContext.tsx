@@ -1,11 +1,11 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { api } from '@/services/api'; // Ajuste para apontar ao cliente Axios configurado
+import { api } from '@/services/api';
 
 // Interface para o objeto de usuário
 interface User {
   id: number;
   username: string;
-  role: string; // "gestor", "mecanico", "administrador"
+  role: string;
 }
 
 // Interface para o contexto de autenticação
@@ -16,38 +16,30 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-// Cria o contexto com valor padrão undefined
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hook para consumir o contexto de autenticação
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
+  if (!context) throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   return context;
 }
 
-// Props do Provider
 type AuthProviderProps = { children: ReactNode };
 
-// Provider de autenticação que engloba a aplicação
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Checa autenticação ao montar
   useEffect(() => {
     async function checkAuth() {
       const token = localStorage.getItem('authToken');
       if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
-          const resp = await api.get('/api/auth/check', { headers: { Authorization: `Bearer ${token}` } });;
+          const resp = await api.get('/api/auth/check');
           const u = resp.data.user;
           setUser({ id: u.id, username: u.username, role: u.role });
-        } catch (err) {
-          console.error('Erro ao validar token:', err);
+        } catch {
           setUser(null);
         }
       }
@@ -56,20 +48,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, []);
 
-  // Função de login
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
       const resp = await api.post('/api/auth/login', { username, password });
       console.log('login response →', resp);
       console.log('login response.data →', resp.data);
-  
-      // ajuste aqui conforme sua API retorna o usuário
-      const { token, user: u } = resp.data;
-  
-      localStorage.setItem('authToken', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser({ id: u.id, username: u.username, role: u.role });
+
+      // Desestruturação conforme seu backend retorna:
+      // aqui não há token nem objeto `user`, mas sim user_id e role
+      const { user_id, role } = resp.data;
+
+      // Se sua API fornecesse token, faria algo como:
+      // const { token } = resp.data;
+      // localStorage.setItem('authToken', token);
+      // api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Aqui usamos o username que veio na chamada
+      setUser({ id: user_id, username, role });
     } catch (err) {
       console.error('Erro no login:', err);
       setUser(null);
@@ -78,8 +74,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     }
   };
-  
-  // Função de logout
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -93,11 +88,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(false);
   };
 
-  // Valor do contexto
-  const value: AuthContextType = { user, loading, login, logout};
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

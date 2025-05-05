@@ -64,28 +64,20 @@ const ManutencoesPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fetch machines for filter dropdown
+  // Carrega máquinas para filtro
   useEffect(() => {
     async function loadMaquinas() {
       try {
         const resp = await api.get('/api/maquinas');
-        const data = resp.data;
-        setMaquinasFiltro(Array.isArray(data) ? data : (data.maquinas || []));
+        setMaquinasFiltro(Array.isArray(resp.data) ? resp.data : resp.data.maquinas || []);
       } catch (err) {
-        console.error('Erro ao buscar máquinas para filtro:', err);
+        console.error('Erro ao buscar máquinas:', err);
       }
     }
     loadMaquinas();
   }, []);
 
-  // Read initial filter from URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const mid = params.get('maquina_id');
-    if (mid) setFilterMaquinaId(mid);
-  }, [location.search]);
-
-  // Fetch maintenances when filters change
+  // Aplica filtros na consulta de manutenções
   useEffect(() => {
     async function loadManutencoes() {
       setLoading(true);
@@ -97,8 +89,7 @@ const ManutencoesPage: React.FC = () => {
         if (filterStartDate) params.start_date = filterStartDate;
         if (filterEndDate) params.end_date = filterEndDate;
         const resp = await api.get('/api/manutencoes', { params });
-        const data = resp.data;
-        setManutencoes(Array.isArray(data) ? data : (data.manutencoes || []));
+        setManutencoes(Array.isArray(resp.data) ? resp.data : resp.data.manutencoes || []);
       } catch (err: any) {
         console.error('Erro ao buscar manutenções:', err);
         setError(err.response?.data?.message || 'Não foi possível carregar as manutenções.');
@@ -124,26 +115,30 @@ const ManutencoesPage: React.FC = () => {
   const canEdit = user?.role === 'gestor';
   const canExport = ['gestor', 'administrador'].includes(user?.role || '');
 
+  // Novo handleExport com responseType blob
   const handleExport = async (format: 'excel' | 'pdf') => {
-    const params = new URLSearchParams();
-    if (filterMaquinaId !== 'todas') params.append('maquina_id', filterMaquinaId);
-    if (filterTipo !== 'todos') params.append('tipo_manutencao', filterTipo);
-    if (filterStartDate) params.append('start_date', filterStartDate);
-    if (filterEndDate) params.append('end_date', filterEndDate);
-    const url = `/export/manutencoes/${format}?${params.toString()}`;
+    const params: Record<string, string> = {};
+    if (filterMaquinaId !== 'todas') params.maquina_id = filterMaquinaId;
+    if (filterTipo !== 'todos') params.tipo_manutencao = filterTipo;
+    if (filterStartDate) params.start_date = filterStartDate;
+    if (filterEndDate) params.end_date = filterEndDate;
+
     try {
-      const resp = await api.get(url, { responseType: 'blob' });
+      // Ajuste: usa axios responseType blob e params
+      const resp = await api.get(`/export/manutencoes/${format}`, { params, responseType: 'blob' });
+      // Constrói blob e URL
       const blob = new Blob([resp.data], { type: resp.headers['content-type'] });
-      const downloadUrl = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = downloadUrl;
+      link.href = url;
+      // Extrai filename do header Content-Disposition
       const cd = resp.headers['content-disposition'] || '';
-      const match = cd.match(/filename="?(.+)"?/i);
+      const match = cd.match(/filename="?(.+?)"?$/i);
       link.download = match ? match[1] : `export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error(`Erro ao exportar ${format}:`, err);
       setError(err.response?.data?.message || `Erro ao exportar ${format}.`);
