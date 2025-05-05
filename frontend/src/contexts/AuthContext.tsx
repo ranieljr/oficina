@@ -1,16 +1,12 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { api } from '@/src/api';
-import { api } from './api';
-
-// Configura a URL base para todas as requisições Axios
-api.defaults.baseURL = `${import.meta.env.VITE_API_URL}/api/auth/login`;
 
 // Define a interface para o objeto de usuário
-interface User {
+type User = {
   id: number;
   username: string;
   role: string; // "gestor", "mecanico", "administrador"
-}
+};
 
 // Define a interface para o contexto de autenticação
 interface AuthContextType {
@@ -20,100 +16,80 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-// Cria o contexto com um valor padrão inicial
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Hook customizado para usar o contexto de autenticação
-export function useAuth() {
+export function useAuthContext() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 }
 
 // Componente provedor do contexto
-export function AuthProvider({ children }: { children: ReactNode }) {
+type AuthProviderProps = { children: ReactNode };
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Inicia como true para verificar o estado inicial
+  const [loading, setLoading] = useState(true);
 
-  // Efeito para verificar se há um usuário logado (ex: token no localStorage) ao iniciar
+  // Checa estado de autenticação inicial
   useEffect(() => {
-    const checkAuthState = async () => {
+    async function checkAuth() {
       try {
-        // TODO: Implementar lógica para verificar token/sessão
-        // Exemplo: Ler token do localStorage, validar no backend
-        // const token = localStorage.getItem('authToken');
-        // if (token) {
-        //   // Validar token no backend e obter dados do usuário
-        //   const response = await api.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-        //   setUser(response.data.user);
-        // } else {
-        //   setUser(null);
-        // }
-        // Simulação por enquanto:
-        setUser(null); // Assume não logado inicialmente
-      } catch (error) {
-        console.error("Erro ao verificar estado de autenticação:", error);
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          const resp = await api.get('/api/auth/me');
+          setUser(resp.data.user);
+        }
+      } catch (err) {
+        console.error('Erro ao validar token:', err);
         setUser(null);
       } finally {
         setLoading(false);
       }
-    };
-    checkAuthState();
+    }
+    checkAuth();
   }, []);
 
+  // Função de login
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const response = await api.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/login`, { username, password });
-      // TODO: Armazenar token/sessão (ex: localStorage.setItem('authToken', response.data.token));
-      const userData: User = {
-          id: response.data.user_id,
-          username: username, // O backend pode retornar o username também
-          role: response.data.role
-      };
-      setUser(userData);
-    } catch (error) {
-      console.error("Erro no login:", error);
+      const resp = await api.post('/api/auth/login', { username, password });
+      const { token, user: u } = resp.data;
+      localStorage.setItem('authToken', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser({ id: u.id, username: u.username, role: u.role });
+    } catch (err) {
+      console.error('Erro no login:', err);
       setUser(null);
-      // Re-lançar o erro para que o componente de login possa tratá-lo (ex: mostrar mensagem)
-      throw error;
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // Função de logout
   const logout = async () => {
     setLoading(true);
     try {
-      // TODO: Chamar API de logout no backend, se houver
-      //await api.post('/api/auth/logout');
-      // TODO: Remover token/sessão (ex: localStorage.removeItem('authToken'));
+      await api.post('/api/auth/logout'); // se existir
+      localStorage.removeItem('authToken');
+      delete api.defaults.headers.common['Authorization'];
       setUser(null);
-    } catch (error) {
-      console.error("Erro no logout:", error);
-      // Mesmo em caso de erro, deslogar no frontend
+    } catch (err) {
+      console.error('Erro no logout:', err);
       setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const value = {
-    user,
-    loading,
-    login,
-    logout,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const login = async (username: string, password: string) => {
-    const { data } = await api.post('/api/auth/login', { username, password });
-    return data;
-  };
-  return { login };
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
