@@ -77,7 +77,18 @@ def export_manutencoes_excel():
         buf.seek(0)
         magic = buf.read(4)
         current_app.logger.debug(f"Magic bytes do Excel: {magic!r}")
+        
         buf.seek(0)
+        try:
+            df_teste = pd.read_excel(buf)
+            current_app.logger.debug(f"Lido sem erro: {len(df_teste)} linhas")
+        except Exception as e:
+            current_app.logger.error(f"Erro ao ler buffer como .xlsx: {e}")
+
+        # 1.3) Opcional: salve no disco para baixar manualmente do servidor
+        buf.seek(0)
+        with open("/tmp/debug_export.xlsx", "wb") as f:
+            f.write(buf.getvalue())
 
         filename = f"export_manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
 
@@ -90,14 +101,7 @@ def export_manutencoes_excel():
             "Pragma": "no-cache",
             "Expires": "0",
         }
-        return send_file(
-            buf,
-            as_attachment=True,
-            download_name=filename,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            conditional=False,        # força sempre reenvio do corpo
-            cache_timeout=0           # inibe cache intermediários
-        )
+        return Response(data, headers=headers)
         
     except Exception as e:      
         # imprime o traceback completo no console do Flask
