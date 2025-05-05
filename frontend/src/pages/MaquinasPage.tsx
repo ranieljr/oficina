@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle, Edit, Trash2, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Para navegação
 import MaquinaFormModal from '@/components/MaquinaFormModal'; // Importar o modal
-import api from '@/services/api';
+import api from '@/src/api';
 
 // Interface para os dados da máquina (espelhando o backend)
 interface Maquina {
