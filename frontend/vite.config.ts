@@ -24,6 +24,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/export": {                    // <— proxy para /export também
+        target: "https://lauf-backend.onrender.com",
+        changeOrigin: true,
+        secure: false,
+        // (opcional) se quiser reescrever a URL,
+        // mas aqui não é necessário, pois /export já bate
+      },
     },
   },
 });
