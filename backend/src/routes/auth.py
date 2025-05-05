@@ -12,7 +12,7 @@ auth_bp = Blueprint("auth_bp", __name__)
 logging.basicConfig(level=logging.INFO)
 
 # Rota de Login (Placeholder - precisa de implementação de sessão/token)
-@auth_bp.route("/login", methods=["POST"])
+@auth_bp.route("/api/auth/login", methods=["POST"])
 def login():
     logging.info("Recebida requisição de login")
     try:
