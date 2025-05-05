@@ -2,16 +2,17 @@ from flask import Blueprint, Response, request, jsonify, send_file, current_app
 from io import BytesIO
 from datetime import datetime
 import pandas as pd
+import xlsxwriter
 from functools import wraps
 from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
 
-export_bp = Blueprint("export_bp", __name__)
+# Cria Blueprint com prefixo '/export'
+export_bp = Blueprint("export_bp", __name__, url_prefix="/export")
 
 # Decorator para verificar roles
 def role_required(roles):
     if not isinstance(roles, list):
         roles = [roles]
-
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -20,12 +21,13 @@ def role_required(roles):
         return decorated_function
     return decorator
 
-# Função de filtros (mantém a sua lógica de filtros)
+# Função de filtro (implemente sua lógica real)
 def _get_filtered_manutencoes(args):
-    # seus filtros aqui...
+    # Exemplo: retornar lista de Manutencao baseada em args
+    # return Manutencao.query.filter(...).all()
     ...
 
-@export_bp.route("/export/manutencoes/excel", methods=["GET"])
+@export_bp.route("/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
     try:
@@ -55,14 +57,16 @@ def export_manutencoes_excel():
             df.to_excel(writer, index=False, sheet_name="Manutenções")
         buf.seek(0)
 
-        # Log para debug
-        content = buf.getvalue()
-        current_app.logger.info(f"Excel gerado: {len(content)} bytes; magic={content[:4]!r}")
+        # Debug: log tamanho e magic bytes
+        first_bytes = buf.read(4)
+        size = buf.getbuffer().nbytes
+        current_app.logger.info(f"Excel gerado: {size} bytes; magic={first_bytes!r}")
+        buf.seek(0)
 
         # Envia com send_file e flags anti-cache
         filename = f"manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
         return send_file(
-            BytesIO(content),
+            buf,
             as_attachment=True,
             download_name=filename,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -75,14 +79,13 @@ def export_manutencoes_excel():
         current_app.logger.exception("Erro interno ao gerar Excel")
         return jsonify({"message": f"Erro interno (Excel): {e}"}), 500
 
-@export_bp.route("/export/manutencoes/pdf", methods=["GET"])
+@export_bp.route("/manutencoes/pdf", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_pdf():
     manutencoes = _get_filtered_manutencoes(request.args)
     if not manutencoes:
         return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-    # Monta HTML do relatório
     html = "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:8px;}</style></head><body>"
     html += "<h2>Relatório de Manutenções</h2><table><thead><tr>"
     cols = ["Máquina","Frota","Entrada","Saída","Tipo","Categoria","Responsável","Custo"]
