@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '@/src/api';
+import { api } from '@/services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle, Edit, FileDown } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom'; // Para filtros via URL e navegação
 import ManutencaoFormModal from '@/components/ManutencaoFormModal'; // Importar o modal
-import api from "@/src/api";
 import { Trash } from 'lucide-react';
 
 // Interface para os dados da manutenção (espelhando o backend)

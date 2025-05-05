@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '@/src/api';
+import { api } from '@/services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle, Edit, Trash2, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Para navegação
 import MaquinaFormModal from '@/components/MaquinaFormModal'; // Importar o modal
-import api from '@/src/api';
 
 // Interface para os dados da máquina (espelhando o backend)
 interface Maquina {
