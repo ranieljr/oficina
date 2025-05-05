@@ -65,19 +65,32 @@ def export_manutencoes_excel():
         # reposiciona ponteiro antes de enviar
         buf.seek(0)
 
+        # 1) Teste ler o que você acabou de gerar:
+        buf.seek(0)
+        try:
+            df_teste = pd.read_excel(buf)
+            current_app.logger.debug(f"Preview gerado sem erro, {len(df_teste)} linhas lidas")
+        except Exception as e:
+            current_app.logger.error(f"Buffer inválido: não é um .xlsx válido — {e}")
+
+        # 2) Confira os 4 primeiros bytes (deveriam ser 'PK\\x03\\x04'):
+        buf.seek(0)
+        magic = buf.read(4)
+        current_app.logger.debug(f"Magic bytes do Excel: {magic!r}")
+        buf.seek(0)
+
         filename = f"export_manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
 
-        return send_file(
-            buf,
-            as_attachment=True,
-            download_name=filename,
-            mimetype=(
-                "application/"
-                "vnd.openxmlformats-officedocument.sheet"
-            )
-        )
+        data = buf.getvalue()
+        headers = {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Length": str(len(data)),
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        }
+        return Response(data, headers=headers)
         
-    except Exception as e:
+    except Exception as e:      
         # imprime o traceback completo no console do Flask
         import traceback; traceback.print_exc()
         # e retorna o JSON pro front
