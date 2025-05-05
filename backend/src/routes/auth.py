@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 # TODO: Implement JWT or Flask-Login for session management
 # from flask_login import login_user, logout_user, login_required, current_user
@@ -7,13 +8,29 @@ from src.models.models import db, Usuario, RoleEnum
 
 import logging
 
+# Blueprint de autenticação
 auth_bp = Blueprint("auth_bp", __name__, url_prefix="/api/auth")
+# Habilita CORS para todas as rotas deste blueprint
+CORS(
+    auth_bp,
+    resources={r"/api/auth/*": {"origins": "https://laufoficina.vercel.app"}},
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 
 logging.basicConfig(level=logging.INFO)
 
-# Rota de Login (Placeholder - precisa de implementação de sessão/token)
-@auth_bp.route("/login", methods=["POST"])
+# Rota de Login
+@auth_bp.route("/login", methods=["OPTIONS", "POST"])
 def login():
+    # Responde à preflight
+    if request.method == "OPTIONS":
+        return make_response(("", 204, {
+            "Access-Control-Allow-Origin": "https://laufoficina.vercel.app",
+            "Access-Control-Allow-Methods": "POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization"
+        }))
+
     logging.info("Recebida requisição de login")
     try:
         data = request.get_json()
@@ -36,36 +53,30 @@ def login():
             return jsonify({"message": "Credenciais inválidas"}), 401
         
         logging.info(f"Usuário {username} encontrado. Verificando senha...")
-        password_check_result = check_password_hash(user.password_hash, password)
-        logging.info(f"Resultado da verificação de senha para {username}: {password_check_result}")
-
-        if not password_check_result:
+        if not check_password_hash(user.password_hash, password):
             logging.warning(f"Senha incorreta para o usuário {username}")
             return jsonify({"message": "Credenciais inválidas"}), 401
 
         # TODO: Gerar token JWT ou usar flask_login.login_user(user)
         logging.info(f"Login bem-sucedido para usuário: {username}")
-        # Exemplo simples de retorno (sem token real):
         return jsonify({"message": "Login bem-sucedido", "user_id": user.id, "role": user.role.value}), 200
     except Exception as e:
         logging.error(f"Erro inesperado durante o login: {e}", exc_info=True)
         return jsonify({"message": "Erro interno no servidor"}), 500
 
-# Rota de Logout (Placeholder)
+# Rota de Logout
 @auth_bp.route('/logout', methods=['POST'])
-# @login_required # Descomentar quando usar Flask-Login
 def logout():
     # TODO: Invalidar token JWT ou usar flask_login.logout_user()
     return jsonify({'message': 'Logout bem-sucedido'}), 200
 
-# Rota para criar um usuário inicial (ex: admin/gestor) - pode ser removida ou protegida depois
+# Rota de registro de usuário inicial (ex: admin/gestor)
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    # Idealmente, esta rota deve ser protegida ou usada apenas para setup inicial
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    role_str = data.get('role', 'mecanico') # Default para mecanico se não especificado
+    role_str = data.get('role', 'mecanico')
 
     if not username or not password:
         return jsonify({'message': 'Nome de usuário e senha são obrigatórios'}), 400
@@ -86,7 +97,7 @@ def register():
 
     return jsonify({'message': 'Usuário criado com sucesso'}), 201
 
+# Rota para checar autenticação
 @auth_bp.route("/check", methods=["GET"])
 def check_auth():
-    # Aqui você pode validar um token, sessão, ou só retornar status
     return jsonify({"authenticated": True}), 200
