@@ -1,10 +1,10 @@
-// src/api.ts
-import axios from 'axios';
+// src/services/api.ts
+export const API_BASE = 'https://lauf-backend.onrender.com';
 
-const API_URL = import.meta.env.VITE_API_URL 
-  ?? 'https://lauf-backend.onrender.com';
-
-export const api = axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
-});
+export const ENDPOINTS = {
+  login: `${API_BASE}/api/auth/login`,
+  maquinas: `${API_BASE}/api/maquinas`,
+  manutencoes: `${API_BASE}/api/manutencoes`,
+  exportExcel: `${API_BASE}/api/export/manutencoes/excel`,
+  exportPDF: `${API_BASE}/api/export/manutencoes/pdf`,
+};
