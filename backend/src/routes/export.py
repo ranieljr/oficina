@@ -71,8 +71,10 @@ def export_manutencoes_excel():
             buf,
             as_attachment=True,
             download_name=filename,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        cache_timeout=0
+            mimetype=(
+                "application/"
+                "vnd.openxmlformats-officedocument.sheet"
+            )
         )
         
     except Exception as e:
