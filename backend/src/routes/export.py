@@ -4,10 +4,10 @@ from datetime import datetime
 import pandas as pd
 from functools import wraps
 from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
-import xlsxwriter
 
 export_bp = Blueprint("export_bp", __name__)
 
+# Decorator para verificar roles
 def role_required(roles):
     if not isinstance(roles, list):
         roles = [roles]
@@ -15,20 +15,17 @@ def role_required(roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            # Aqui você colocaria a lógica real de verificação de token/usuário,
-            # por enquanto só vamos imprimir e seguir em frente:
-            current_app.logger.debug(f"Verificando roles: {roles} para o usuário em {request.path}")
+            current_app.logger.debug(f"Verificando roles: {roles} para {request.path}")
             return f(*args, **kwargs)
         return decorated_function
-
     return decorator
-    # seu decorator aqui (igual ao atual)
+
+# Função de filtros (mantém a sua lógica de filtros)
+def _get_filtered_manutencoes(args):
+    # seus filtros aqui...
     ...
 
-def _get_filtered_manutencoes(args):
-    # seus filtros aqui (igual ao atual)
-    ...
-@export_bp.route("/manutencoes/excel", methods=["GET"])
+@export_bp.route("/export/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
     try:
@@ -36,120 +33,61 @@ def export_manutencoes_excel():
         if not manutencoes:
             return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-        # monta o DataFrame
+        # Monta DataFrame
         df = pd.DataFrame([{
-            "ID":             m.id,
-            "Máquina":        m.maquina.nome,
-            "Frota":          m.maquina.numero_frota,
-            "Entrada":        m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
-            "Saída":          m.data_saida.strftime("%d/%m/%Y %H:%M")   if m.data_saida   else "",
-            "Horímetro":      m.horimetro_hodometro,
-            "Tipo":           m.tipo_manutencao.value,
-            "Categoria":      m.categoria_servico.value,
-            "Específico":     (m.categoria_outros_especificacao
-                                 if m.categoria_servico == CategoriaServicoEnum.OUTROS
-                                 else ""),
-            "Comentário":     m.comentario  or "",
-            "Responsável":    m.responsavel_servico or "",
-            "Custo (R$)":     m.custo or 0
+            "ID": m.id,
+            "Máquina": m.maquina.nome,
+            "Frota": m.maquina.numero_frota,
+            "Entrada": m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
+            "Saída": m.data_saida.strftime("%d/%m/%Y %H:%M") if m.data_saida else "",
+            "Horímetro": m.horimetro_hodometro,
+            "Tipo": m.tipo_manutencao.value,
+            "Categoria": m.categoria_servico.value,
+            "Específico": (m.categoria_outros_especificacao if m.categoria_servico == CategoriaServicoEnum.OUTROS else ""),
+            "Comentário": m.comentario or "",
+            "Responsável": m.responsavel_servico or "",
+            "Custo (R$)": m.custo or 0
         } for m in manutencoes])
 
+        # Gera Excel em memória
         buf = BytesIO()
-        workbook = xlsxwriter.Workbook(buf, {'in_memory': True})
-        ws = workbook.add_worksheet("Manutenções")
-
-        # escreva cabeçalho
-        headers = ["ID", "Máquina", "Frota", "Entrada", "Saída", "Horímetro",
-           "Tipo", "Categoria", "Específico", "Comentário", "Responsável", "Custo (R$)"]
-        for col, h in enumerate(headers):
-            ws.write(0, col, h)
-
-        # escreva linhas
-        for row_idx, m in enumerate(manutencoes, start=1):
-            row = [
-                m.id,
-                m.maquina.nome,
-                m.maquina.numero_frota,
-                m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
-                m.data_saida.strftime("%d/%m/%Y %H:%M") if m.data_saida else "",
-                m.horimetro_hodometro,
-                m.tipo_manutencao.value,
-                m.categoria_servico.value,
-                (m.categoria_outros_especificacao
-                 if m.categoria_servico == CategoriaServicoEnum.OUTROS else ""),
-                m.comentario or "",
-                m.responsavel_servico or "",
-                m.custo or 0
-            ]
-            for col, val in enumerate(row):
-                ws.write(row_idx, col, val)
-
-        workbook.close()
+        with pd.ExcelWriter(buf, engine="xlsxwriter", options={'strings_to_urls': False}) as writer:
+            df.to_excel(writer, index=False, sheet_name="Manutenções")
         buf.seek(0)
 
-        # 1) Teste ler o que você acabou de gerar:
-        buf.seek(0)
-        try:
-            df_teste = pd.read_excel(buf)
-            current_app.logger.debug(f"Preview gerado sem erro, {len(df_teste)} linhas lidas")
-        except Exception as e:
-            current_app.logger.error(f"Buffer inválido: não é um .xlsx válido — {e}")
+        # Log para debug
+        content = buf.getvalue()
+        current_app.logger.info(f"Excel gerado: {len(content)} bytes; magic={content[:4]!r}")
 
-        # 2) Confira os 4 primeiros bytes (deveriam ser 'PK\\x03\\x04'):
-        buf.seek(0)
-        magic = buf.read(4)
-        current_app.logger.debug(f"Magic bytes do Excel: {magic!r}")
-        
-        buf.seek(0)
-        try:
-            df_teste = pd.read_excel(buf)
-            current_app.logger.debug(f"Lido sem erro: {len(df_teste)} linhas")
-        except Exception as e:
-            current_app.logger.error(f"Erro ao ler buffer como .xlsx: {e}")
+        # Envia com send_file e flags anti-cache
+        filename = f"manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
+        return send_file(
+            BytesIO(content),
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            conditional=False,
+            cache_timeout=0,
+            add_etags=False
+        )
 
-        # 1.3) Opcional: salve no disco para baixar manualmente do servidor
-        buf.seek(0)
-        with open("/tmp/debug_export.xlsx", "wb") as f:
-            f.write(buf.getvalue())
-
-        filename = f"export_manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
-
-        data = buf.getvalue()
-        headers = {
-            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Disposition": f"attachment; filename={filename}",
-            "Content-Length": str(len(data)),
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        }
-        resp = Response(data)
-        resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        # remove o ETag caso ainda seja inserido automaticamente
-        resp.headers.pop("ETag", None)
-        return resp
-        
-    except Exception as e:      
-        # imprime o traceback completo no console do Flask
-        import traceback; traceback.print_exc()
-        # e retorna o JSON pro front
+    except Exception as e:
+        current_app.logger.exception("Erro interno ao gerar Excel")
         return jsonify({"message": f"Erro interno (Excel): {e}"}), 500
 
-@export_bp.route("/manutencoes/pdf", methods=["GET"])
+@export_bp.route("/export/manutencoes/pdf", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_pdf():
     manutencoes = _get_filtered_manutencoes(request.args)
     if not manutencoes:
         return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-    # Monta HTML
+    # Monta HTML do relatório
     html = "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:8px;}</style></head><body>"
     html += "<h2>Relatório de Manutenções</h2><table><thead><tr>"
-    html += "<th>Máquina</th><th>Frota</th><th>Entrada</th><th>Saída</th><th>Tipo</th><th>Categoria</th><th>Responsável</th><th>Custo</th>"
+    cols = ["Máquina","Frota","Entrada","Saída","Tipo","Categoria","Responsável","Custo"]
+    for c in cols:
+        html += f"<th>{c}</th>"
     html += "</tr></thead><tbody>"
     for m in manutencoes:
         html += (
@@ -164,9 +102,7 @@ def export_manutencoes_pdf():
         )
     html += "</tbody></table></body></html>"
 
-    # Gera PDF bytes
     pdf_bytes = pdfkit.from_string(html, False, configuration=PDFKIT_CONFIG)
-
     headers = {
         "Content-Type": "application/pdf",
         "Content-Disposition": "attachment; filename=relatorio_manutencoes.pdf",
@@ -175,4 +111,3 @@ def export_manutencoes_pdf():
         "Expires": "0",
     }
     return Response(pdf_bytes, headers=headers)
-
