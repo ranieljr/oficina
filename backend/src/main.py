@@ -19,7 +19,10 @@ logging.basicConfig(level=logging.INFO)
 
 # Cria app
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-CORS(app, resources={r'/api/*': {"origins": "*"}, r'/export/*': {"origins": "*"}})
+CORS(app, resources={
+    r'/api/*': {"origins": "*"}, 
+    r'/export/*': {"origins": "*"}
+})
 
 # 1) Carrega Config padrão
 app.config.from_object(Config)
