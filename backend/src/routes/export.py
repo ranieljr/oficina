@@ -87,8 +87,17 @@ def export_manutencoes_excel():
             "Content-Disposition": f"attachment; filename={filename}",
             "Content-Length": str(len(data)),
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
         }
-        return Response(data, headers=headers)
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            conditional=False,        # força sempre reenvio do corpo
+            cache_timeout=0           # inibe cache intermediários
+        )
         
     except Exception as e:      
         # imprime o traceback completo no console do Flask
