@@ -96,7 +96,7 @@ const MaquinaFormModal: React.FC<MaquinaFormModalProps> = ({ maquinaToEdit, onSu
       // TODO: Add authentication headers if required by the API
       // const config = { headers: { Authorization: `Bearer ${token}` } };
       if (isEditing && maquinaToEdit) {
-        await axios.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
+        await api.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
       } else {
         await api.post('/api/maquinas', maquinaData);
       }

@@ -197,7 +197,7 @@ const ManutencaoFormModal: React.FC<ManutencaoFormModalProps> = ({ manutencaoToE
     try {
       // TODO: Add authentication headers if required
       if (isEditing && manutencaoToEdit) {
-        await axios.put(`/api/manutencoes/${manutencaoToEdit.id}`, manutencaoData);
+        await api.put(`/api/manutencoes/${manutencaoToEdit.id}`, manutencaoData);
       } else {
         await api.post('/api/manutencoes', manutencaoData);
       }

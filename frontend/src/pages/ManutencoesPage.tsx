@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle, Edit, FileDown } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom'; // Para filtros via URL e navegação
 import ManutencaoFormModal from '@/components/ManutencaoFormModal'; // Importar o modal
-import api from "@/services/api";
+import api from "@/src/api";
 import { Trash } from 'lucide-react';
 
 // Interface para os dados da manutenção (espelhando o backend)
@@ -34,7 +34,7 @@ const handleDeleteManutencao = async (id: number) => {
   if (!confirmacao) return;
 
   try {
-    await axios.delete(`/api/manutencoes/${id}`);
+    await api.delete(`/api/manutencoes/${id}`);
     alert("Manutenção excluída com sucesso.");
     setManutencoes((prev) => prev.filter((m) => m.id !== id));
   } catch (err: any) {

@@ -3,7 +3,7 @@ import { api } from '@/src/api';
 import { api } from './api';
 
 // Configura a URL base para todas as requisições Axios
-axios.defaults.baseURL = `${import.meta.env.VITE_API_URL}/api/auth/login`;
+api.defaults.baseURL = `${import.meta.env.VITE_API_URL}/api/auth/login`;
 
 // Define a interface para o objeto de usuário
 interface User {
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       // TODO: Chamar API de logout no backend, se houver
-      // await api.post('/api/auth/logout');
+      //await api.post('/api/auth/logout');
       // TODO: Remover token/sessão (ex: localStorage.removeItem('authToken'));
       setUser(null);
     } catch (error) {
