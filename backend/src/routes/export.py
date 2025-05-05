@@ -8,6 +8,19 @@ from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, Categoria
 export_bp = Blueprint("export_bp", __name__)
 
 def role_required(roles):
+    if not isinstance(roles, list):
+        roles = [roles]
+
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Aqui você colocaria a lógica real de verificação de token/usuário,
+            # por enquanto só vamos imprimir e seguir em frente:
+            current_app.logger.debug(f"Verificando roles: {roles} para o usuário em {request.path}")
+            return f(*args, **kwargs)
+        return decorated_function
+
+    return decorator
     # seu decorator aqui (igual ao atual)
     ...
 
