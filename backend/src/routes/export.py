@@ -28,7 +28,7 @@ def role_required(roles):
 def _get_filtered_manutencoes(args):
     # seus filtros aqui (igual ao atual)
     ...
-@export_bp.route("/export/manutencoes/excel", methods=["GET"])
+@export_bp.route("/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
     try:
@@ -139,7 +139,7 @@ def export_manutencoes_excel():
         # e retorna o JSON pro front
         return jsonify({"message": f"Erro interno (Excel): {e}"}), 500
 
-@export_bp.route("/export/manutencoes/pdf", methods=["GET"])
+@export_bp.route("/manutencoes/pdf", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_pdf():
     manutencoes = _get_filtered_manutencoes(request.args)
