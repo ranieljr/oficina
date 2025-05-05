@@ -1,5 +1,4 @@
-# Substituir o conteúdo do arquivo de rota de máquinas com o código corrigido
-from flask import Blueprint, request, jsonify
+# Substituir o conteúdo do from flask import Blueprint, request, jsonify
 from src.models.models import db, Maquina, TipoMaquinaEnum, TipoControleEnum, StatusMaquinaEnum
 from datetime import datetime
 from functools import wraps
@@ -61,6 +60,3 @@ def handle_maquinas():
             return jsonify(output), 200
         except Exception as e:
             return jsonify({"message": f"Erro ao buscar máquinas: {e}"}), 500
-# Sobrescrever o arquivo original com o novo código
-#with open(rota_maquinas, "w", encoding="utf-8") as f:
-#    f.write(novo_codigo.strip())
