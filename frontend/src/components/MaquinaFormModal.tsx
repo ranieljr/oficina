@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '@/src/api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,7 +98,7 @@ const MaquinaFormModal: React.FC<MaquinaFormModalProps> = ({ maquinaToEdit, onSu
       if (isEditing && maquinaToEdit) {
         await axios.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
       } else {
-        await axios.post('/api/maquinas', maquinaData);
+        await api.post('/api/maquinas', maquinaData);
       }
       onSuccess(); // Call the success callback (e.g., refetch machine list)
       setIsOpen(false); // Close modal on success

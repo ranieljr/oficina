@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '@/src/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle, Edit, Trash2, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Para navegação
 import MaquinaFormModal from '@/components/MaquinaFormModal'; // Importar o modal
+import api from '@/services/api';
 
 // Interface para os dados da máquina (espelhando o backend)
 interface Maquina {
@@ -21,6 +22,8 @@ interface Maquina {
   marca: string | null;
   status: string;
 }
+const response = await api.get('/api/maquinas');
+const result   = await api.post('/api/maquinas', payload);
 
 const MaquinasPage = () => {
   const [maquinas, setMaquinas] = useState<Maquina[]>([]);
@@ -40,7 +43,7 @@ const MaquinasPage = () => {
     setError(null);
     try {
       // TODO: Adicionar headers de autenticação se necessário
-      const response = await axios.get("/api/maquinas");
+      const response = await api.get("/api/maquinas");
       setMaquinas(response.data);
       // Apply filters immediately after fetching
       filterAndSetMaquinas(response.data, searchTerm, filterStatus);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '@/src/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -79,7 +79,7 @@ const ManutencoesPage = () => {
       if (filterEndDate) params.append("end_date", filterEndDate);
 
       // TODO: Adicionar headers de autenticação se necessário
-      const response = await axios.get("/api/manutencoes", { params });
+      const response = await api.get("/api/manutencoes", { params });
       const data = response.data;
       if (Array.isArray(data)) {
         setManutencoes(data);
@@ -102,7 +102,7 @@ const ManutencoesPage = () => {
   useEffect(() => {
     const fetchMaquinasParaFiltro = async () => {
       try {
-        const response = await axios.get("/api/maquinas");
+        const response = await api.get("/api/maquinas");
         const data = response.data;
           if (Array.isArray(data)) {
             setMaquinasFiltro(data);
@@ -167,7 +167,7 @@ const ManutencoesPage = () => {
 
     try {
       // TODO: Adicionar headers de autenticação se necessário
-      const response = await axios.get(url, {
+      const response = await api.get(url, {
         responseType: 'blob', // Importante para lidar com arquivos
       });
 

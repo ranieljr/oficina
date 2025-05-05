@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import { api } from '@/src/api';
 import { api } from './api';
 
 // Configura a URL base para todas as requisições Axios
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // const token = localStorage.getItem('authToken');
         // if (token) {
         //   // Validar token no backend e obter dados do usuário
-        //   const response = await axios.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+        //   const response = await api.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
         //   setUser(response.data.user);
         // } else {
         //   setUser(null);
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/login`, { username, password });
+      const response = await api.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/login`, { username, password });
       // TODO: Armazenar token/sessão (ex: localStorage.setItem('authToken', response.data.token));
       const userData: User = {
           id: response.data.user_id,
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       // TODO: Chamar API de logout no backend, se houver
-      // await axios.post('/api/auth/logout');
+      // await api.post('/api/auth/logout');
       // TODO: Remover token/sessão (ex: localStorage.removeItem('authToken'));
       setUser(null);
     } catch (error) {

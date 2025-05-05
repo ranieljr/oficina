@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '@/src/api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +77,7 @@ const ManutencaoFormModal: React.FC<ManutencaoFormModalProps> = ({ manutencaoToE
   useEffect(() => {
     const fetchMaquinas = async () => {
       try {
-        const response = await axios.get('/api/maquinas');
+        const response = await api.get('/api/maquinas');
         const data = response.data;
   
         if (Array.isArray(data)) {
@@ -199,7 +199,7 @@ const ManutencaoFormModal: React.FC<ManutencaoFormModalProps> = ({ manutencaoToE
       if (isEditing && manutencaoToEdit) {
         await axios.put(`/api/manutencoes/${manutencaoToEdit.id}`, manutencaoData);
       } else {
-        await axios.post('/api/manutencoes', manutencaoData);
+        await api.post('/api/manutencoes', manutencaoData);
       }
       onSuccess();
       setIsOpen(false);
