@@ -43,7 +43,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
-          const resp = await api.get('/api/auth/me');
+          const resp = await api.get('/api/auth/check', { headers: { Authorization: `Bearer ${token}` } });;
           const u = resp.data.user;
           setUser({ id: u.id, username: u.username, role: u.role });
         } catch (err) {
@@ -61,7 +61,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     try {
       const resp = await api.post('/api/auth/login', { username, password });
+      console.log('login response →', resp);
+      console.log('login response.data →', resp.data);
+  
+      // ajuste aqui conforme sua API retorna o usuário
       const { token, user: u } = resp.data;
+  
       localStorage.setItem('authToken', token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser({ id: u.id, username: u.username, role: u.role });
@@ -73,23 +78,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     }
   };
-
+  
   // Função de logout
-  //const logout = async () => {
-    //setLoading(true);
-    //try {
-      //await api.post('/api/auth/logout');
-    //} catch (err) {
-      //console.error('Erro no logout:', err);
-    //}
-    //localStorage.removeItem('authToken');
-    //delete api.defaults.headers.common['Authorization'];
-    //setUser(null);
-    //setLoading(false);
-  //};
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      console.error('Erro no logout:', err);
+    }
+    localStorage.removeItem('authToken');
+    delete api.defaults.headers.common['Authorization'];
+    setUser(null);
+    setLoading(false);
+  };
 
   // Valor do contexto
-  const value: AuthContextType = { user, loading, login,};
+  const value: AuthContextType = { user, loading, login, logout};
 
   return (
     <AuthContext.Provider value={value}>

@@ -7,7 +7,7 @@ from src.models.models import db, Usuario, RoleEnum
 
 import logging
 
-auth_bp = Blueprint("auth_bp", __name__)
+auth_bp = Blueprint("auth_bp", __name__, url_prefix="/api/auth")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -86,3 +86,7 @@ def register():
 
     return jsonify({'message': 'Usuário criado com sucesso'}), 201
 
+@auth_bp.route("/check", methods=["GET"])
+def check_auth():
+    # Aqui você pode validar um token, sessão, ou só retornar status
+    return jsonify({"authenticated": True}), 200
