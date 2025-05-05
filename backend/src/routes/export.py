@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify, send_file, current_app
+from flask import Blueprint, Response, request, jsonify, send_file, current_app
 from io import BytesIO
 from datetime import datetime
 import pandas as pd
 from functools import wraps
 from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
+import xlsxwriter
 
 export_bp = Blueprint("export_bp", __name__)
 
@@ -54,15 +55,37 @@ def export_manutencoes_excel():
             "Custo (R$)":     m.custo or 0
         } for m in manutencoes])
 
-        # escreve em memória usando openpyxl
         buf = BytesIO()
-        writer = pd.ExcelWriter(buf, engine="xlsxwriter", 
-                                options={'strings_to_urls': False})
-        df.to_excel(writer, index=False, sheet_name="Manutenções")
-        # garante gravação e liberação de recursos
-        writer.close()
-    
-        # reposiciona ponteiro antes de enviar
+        workbook = xlsxwriter.Workbook(buf, {'in_memory': True})
+        ws = workbook.add_worksheet("Manutenções")
+
+        # escreva cabeçalho
+        headers = ["ID", "Máquina", "Frota", "Entrada", "Saída", "Horímetro",
+           "Tipo", "Categoria", "Específico", "Comentário", "Responsável", "Custo (R$)"]
+        for col, h in enumerate(headers):
+            ws.write(0, col, h)
+
+        # escreva linhas
+        for row_idx, m in enumerate(manutencoes, start=1):
+            row = [
+                m.id,
+                m.maquina.nome,
+                m.maquina.numero_frota,
+                m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
+                m.data_saida.strftime("%d/%m/%Y %H:%M") if m.data_saida else "",
+                m.horimetro_hodometro,
+                m.tipo_manutencao.value,
+                m.categoria_servico.value,
+                (m.categoria_outros_especificacao
+                 if m.categoria_servico == CategoriaServicoEnum.OUTROS else ""),
+                m.comentario or "",
+                m.responsavel_servico or "",
+                m.custo or 0
+            ]
+            for col, val in enumerate(row):
+                ws.write(row_idx, col, val)
+
+        workbook.close()
         buf.seek(0)
 
         # 1) Teste ler o que você acabou de gerar:
