@@ -1,83 +1,94 @@
 from flask import Blueprint, Response, request, jsonify, send_file, current_app
 from io import BytesIO
 from datetime import datetime
-import pandas as pd
 import xlsxwriter
 from functools import wraps
 from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
 
-# Cria Blueprint com prefixo '/export'
+# Blueprint configurado em '/export'
 export_bp = Blueprint("export_bp", __name__, url_prefix="/export")
 
-# Decorator para verificar roles
+# Decorator de roles
 def role_required(roles):
     if not isinstance(roles, list):
         roles = [roles]
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
-            current_app.logger.debug(f"Verificando roles: {roles} para {request.path}")
+        def wrapper(*args, **kwargs):
+            current_app.logger.debug(f"Verificando roles {roles} para {request.path}")
             return f(*args, **kwargs)
-        return decorated_function
+        return wrapper
     return decorator
 
-# Função de filtro (implemente sua lógica real)
+# Função de filtros (implemente conforme sua lógica)
 def _get_filtered_manutencoes(args):
-    # Exemplo: retornar lista de Manutencao baseada em args
-    # return Manutencao.query.filter(...).all()
+    # Exemplo:
+    # return Manutencao.query.filter_by(...).all()
     ...
 
 @export_bp.route("/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
     try:
+        # Busca dados
         manutencoes = _get_filtered_manutencoes(request.args)
         if not manutencoes:
             return jsonify({"message": "Nenhuma manutenção encontrada."}), 404
 
-        # Monta DataFrame
-        df = pd.DataFrame([{
-            "ID": m.id,
-            "Máquina": m.maquina.nome,
-            "Frota": m.maquina.numero_frota,
-            "Entrada": m.data_entrada.strftime("%d/%m/%Y %H:%M") if m.data_entrada else "",
-            "Saída": m.data_saida.strftime("%d/%m/%Y %H:%M") if m.data_saida else "",
-            "Horímetro": m.horimetro_hodometro,
-            "Tipo": m.tipo_manutencao.value,
-            "Categoria": m.categoria_servico.value,
-            "Específico": (m.categoria_outros_especificacao if m.categoria_servico == CategoriaServicoEnum.OUTROS else ""),
-            "Comentário": m.comentario or "",
-            "Responsável": m.responsavel_servico or "",
-            "Custo (R$)": m.custo or 0
-        } for m in manutencoes])
-
-        # Gera Excel em memória
+        # Cria Excel puro com xlsxwriter
         buf = BytesIO()
-        with pd.ExcelWriter(buf, engine="xlsxwriter", options={'strings_to_urls': False}) as writer:
-            df.to_excel(writer, index=False, sheet_name="Manutenções")
+        workbook = xlsxwriter.Workbook(buf, {'in_memory': True})
+        ws = workbook.add_worksheet('Manutenções')
+
+        # Cabeçalho
+        headers = ['ID','Máquina','Frota','Entrada','Saída','Horímetro','Tipo','Categoria','Específico','Comentário','Responsável','Custo (R$)']
+        for col, h in enumerate(headers):
+            ws.write(0, col, h)
+
+        # Linhas
+        for row_idx, m in enumerate(manutencoes, start=1):
+            values = [
+                m.id,
+                m.maquina.nome,
+                m.maquina.numero_frota,
+                m.data_entrada.strftime('%d/%m/%Y %H:%M') if m.data_entrada else '',
+                m.data_saida.strftime('%d/%m/%Y %H:%M') if m.data_saida else '',
+                m.horimetro_hodometro,
+                m.tipo_manutencao.value,
+                m.categoria_servico.value,
+                m.categoria_outros_especificacao if m.categoria_servico==CategoriaServicoEnum.OUTROS else '',
+                m.comentario or '',
+                m.responsavel_servico or '',
+                m.custo or 0
+            ]
+            for col, val in enumerate(values):
+                ws.write(row_idx, col, val)
+
+        workbook.close()
+        # Ajusta buffer
         buf.seek(0)
 
-        # Debug: log tamanho e magic bytes
-        first_bytes = buf.read(4)
-        size = buf.getbuffer().nbytes
-        current_app.logger.info(f"Excel gerado: {size} bytes; magic={first_bytes!r}")
-        buf.seek(0)
+        # Debug: tamanho e magic
+        data = buf.getvalue()
+        size = len(data)
+        magic = data[:4]
+        current_app.logger.info(f"DEBUG Excel -> bytes: {size}; magic: {magic!r}")
 
-        # Envia com send_file e flags anti-cache
+        # Envio
         filename = f"manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
         return send_file(
-            buf,
+            BytesIO(data),
             as_attachment=True,
             download_name=filename,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             conditional=False,
             cache_timeout=0,
             add_etags=False
         )
 
     except Exception as e:
-        current_app.logger.exception("Erro interno ao gerar Excel")
-        return jsonify({"message": f"Erro interno (Excel): {e}"}), 500
+        current_app.logger.exception('Falha ao gerar Excel')
+        return jsonify({'message': f'Erro interno (Excel): {e}'}), 500
 
 @export_bp.route("/manutencoes/pdf", methods=["GET"])
 @role_required(["gestor", "administrador"])
