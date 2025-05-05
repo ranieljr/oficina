@@ -125,16 +125,22 @@ const ManutencoesPage: React.FC = () => {
 
     try {
       // Ajuste: usa axios responseType blob e params
-      const resp = await api.get(`/export/manutencoes/${format}`, { params, responseType: 'blob' });
+      await api.get(`/export/manutencoes/${format}`, { 
+        params, 
+        responseType: 'blob' 
+      });
+
       // Constrói blob e URL
       const blob = new Blob([resp.data], { type: resp.headers['content-type'] });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
+      
       // Extrai filename do header Content-Disposition
       const cd = resp.headers['content-disposition'] || '';
       const match = cd.match(/filename="?(.+?)"?$/i);
       link.download = match ? match[1] : `export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      link.href = url;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -144,6 +150,33 @@ const ManutencoesPage: React.FC = () => {
       setError(err.response?.data?.message || `Erro ao exportar ${format}.`);
     }
   };
+
+  if (filterMaquinaId !== 'todas') params.maquina_id = filterMaquinaId;
+  if (filterTipo !== 'todos') params.tipo_manutencao = filterTipo;
+  if (filterStartDate) params.start_date = filterStartDate;
+  if (filterEndDate) params.end_date = filterEndDate;
+
+  try {
+    // Ajuste: usa axios responseType blob e params
+    const resp = await api.get(`/export/manutencoes/${format}`, { params, responseType: 'blob' });
+    // Constrói blob e URL
+    const blob = new Blob([resp.data], { type: resp.headers['content-type'] });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    // Extrai filename do header Content-Disposition
+    const cd = resp.headers['content-disposition'] || '';
+    const match = cd.match(/filename="?(.+?)"?$/i);
+    link.download = match ? match[1] : `export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err: any) {
+    console.error(`Erro ao exportar ${format}:`, err);
+    setError(err.response?.data?.message || `Erro ao exportar ${format}.`);
+  }
+};
 
   return (
     <div className="space-y-4">
