@@ -28,7 +28,6 @@ def role_required(roles):
 def _get_filtered_manutencoes(args):
     # seus filtros aqui (igual ao atual)
     ...
-
 @export_bp.route("/export/manutencoes/excel", methods=["GET"])
 @role_required(["gestor", "administrador"])
 def export_manutencoes_excel():
