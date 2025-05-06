@@ -13,7 +13,7 @@ auth_bp = Blueprint("auth_bp", __name__, url_prefix="/api/auth")
 # Habilita CORS para todas as rotas deste blueprint
 CORS(
     auth_bp,
-    resources={r"/api/auth/*": {"origins": "https://laufoficina.vercel.app"}},
+    resources={r"/api/auth/*": {"origins": ["https://laufoficina.vercel.app", "https://laufoficina-ranieljrs-projects.vercel.app"]}},
     methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"]
 )
@@ -26,7 +26,7 @@ def login():
     # Responde à preflight
     if request.method == "OPTIONS":
         return make_response(("", 204, {
-            "Access-Control-Allow-Origin": "https://laufoficina.vercel.app",
+            "Access-Control-Allow-Origin": ["https://laufoficina.vercel.app", "https://laufoficina-ranieljrs-projects.vercel.app"],
             "Access-Control-Allow-Methods": "POST,OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type,Authorization"
         }))
