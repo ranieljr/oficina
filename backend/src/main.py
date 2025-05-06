@@ -17,6 +17,11 @@ sys.path.insert(0, BASE_DIR)
 # Logging
 logging.basicConfig(level=logging.INFO)
 
+ALLOWED_ORIGINS = [
+    "https://laufoficina.vercel.app",
+    "https://laufoficina-ranieljrs-projects.vercel.app"
+]
+
 # Cria app
 app = Flask(
     __name__, 
