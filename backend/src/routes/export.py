@@ -82,7 +82,7 @@ def export_manutencoes_excel():
         data = buf.getvalue()
 
         current_app.logger.info(f"Excel gerado com {len(data)} bytes")
-        filename = f"manutencoes_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
+        filename = f"manutencoes.xlsx"
 
         headers = {
             "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
