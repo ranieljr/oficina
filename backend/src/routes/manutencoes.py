@@ -171,7 +171,6 @@ def get_manutencao(id):
 
 # Rota para atualizar uma manutenção (Apenas Gestor)
 @manutencoes_bp.route("/manutencoes/<int:id>", methods=["PUT"])
-@role_required("gestor")
 def update_manutencao(id):
     data = request.get_json() or {}
     m = Manutencao.query.get_or_404(id)
@@ -185,7 +184,7 @@ def update_manutencao(id):
         # Enum: tipo_manutencao
         if "tipo_manutencao" in data:
             try:
-                m.tipo_manutencao = TipoManutencaoEnum(data["tipo_manutencao"].upper())
+                m.tipo_manutencao = TipoManutencaoEnum(data["tipo_manutencao"])
             except ValueError:
                 return jsonify({"message": f"Tipo de manutenção inválido: {data['tipo_manutencao']}"}), 400
 
