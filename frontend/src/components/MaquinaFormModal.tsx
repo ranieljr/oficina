@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; // Assuming authentication context is needed for API calls
+import { api } from '@/api';
 
 // Interface for Maquina data (matching backend)
 interface Maquina {
@@ -96,6 +97,8 @@ const MaquinaFormModal: React.FC<MaquinaFormModalProps> = ({ maquinaToEdit, onSu
       // TODO: Add authentication headers if required by the API
       // const config = { headers: { Authorization: `Bearer ${token}` } };
       if (isEditing && maquinaToEdit) {
+        console.log("API:", api.defaults.baseURL);
+        console.log("Env:", import.meta.env.VITE_API_URL);
         await axios.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
       } else {
         await axios.post('/api/maquinas', maquinaData);
