@@ -142,9 +142,10 @@ const ManutencoesPage: React.FC = () => {
       
       const cd = resp.headers['content-disposition'] || '';
       const match = cd.match(/filename="?(.+?)"?$/i);
-      link.download = match ? match[1] : `export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      const filename = match ? match[1] : `manutencoes.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      
       link.href = url;
-      link.setAttribute('download', 'manutencoes.xlsx');
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
