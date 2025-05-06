@@ -132,10 +132,14 @@ const ManutencoesPage: React.FC = () => {
     if (filterEndDate) params.append('end_date', filterEndDate);
     
     try {
-      const resp = await api.get(`/export/manutencoes/${format}`, { params});
-      const blob = new Blob([resp.data], { type: resp.headers['content-type'] });
-      const url = window.URL.createObjectURL(blob);
+      const resp = await api.get(`/export/manutencoes/${format}`, { 
+        params,
+        responseType: 'blob',
+    });
+      
+      const url = window.URL.createObjectURL(new Blob([resp.data]));
       const link = document.createElement('a');
+      
       const cd = resp.headers['content-disposition'] || '';
       const match = cd.match(/filename="?(.+?)"?$/i);
       link.download = match ? match[1] : `export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
