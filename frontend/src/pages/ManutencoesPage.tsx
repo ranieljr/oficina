@@ -181,7 +181,7 @@ const ManutencoesPage: React.FC = () => {
           <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="preventiva">Preventiva</SelectItem>
+            <SelectItem value="Preventiva">Preventiva</SelectItem>
             <SelectItem value="corretiva">Corretiva</SelectItem>
           </SelectContent>
         </Select>
