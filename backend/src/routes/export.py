@@ -6,7 +6,7 @@ from functools import wraps
 from src.models.models import Maquina, Manutencao, TipoManutencaoEnum, CategoriaServicoEnum
 
 # Blueprint configurado em '/export'
-export_bp = Blueprint("export_bp", __name__, url_prefix="/export")
+export_bp = Blueprint("export_bp", __name__)
 
 @export_bp.after_request
 def add_cors_headers(response):
