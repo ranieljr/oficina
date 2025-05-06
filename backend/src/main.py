@@ -17,17 +17,19 @@ sys.path.insert(0, BASE_DIR)
 # Logging
 logging.basicConfig(level=logging.INFO)
 
-ALLOWED_ORIGINS = [
-    "https://laufoficina.vercel.app",
-    "https://laufoficina-ranieljrs-projects.vercel.app"
-]
-
 # Cria app
 app = Flask(
     __name__, 
     static_folder=os.path.join(os.path.dirname(__file__), 'static'),
     static_url_path=""
 )
+ALLOWED_ORIGINS = [
+    "https://laufoficina.vercel.app",
+    "https://laufoficina-ranieljrs-projects.vercel.app"
+]
+
+def origin_validator(origin):
+    return origin if origin in ALLOWED_ORIGINS else None
 
 CORS(
     app,
