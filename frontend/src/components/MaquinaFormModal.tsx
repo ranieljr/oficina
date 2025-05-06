@@ -1,280 +1,228 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '@/services/api';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle
-} from '@/components/ui/alert';
-import { AlertCircle, PlusCircle, Edit, FileDown, Trash } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import ManutencaoFormModal from '@/components/ManutencaoFormModal';
+import axios from 'axios';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext'; // Assuming authentication context is needed for API calls
 
-interface Manutencao {
+// Interface for Maquina data (matching backend)
+interface Maquina {
   id: number;
-  maquina_id: number;
-  maquina_nome: string;
-  horimetro_hodometro: number;
-  data_entrada: string;
-  data_saida: string | null;
-  tipo_manutencao: string;
-  categoria_servico: string;
-  categoria_outros_especificacao: string | null;
-  comentario: string | null;
-  responsavel_servico: string;
-  custo: number | null;
-}
-
-interface MaquinaFiltro {
-  id: number;
-  nome: string;
+  tipo: string;
   numero_frota: string;
+  data_aquisicao: string; // Format YYYY-MM-DD
+  tipo_controle: string;
+  nome: string;
+  marca: string | null;
+  status: string;
 }
 
-const ManutencoesPage: React.FC = () => {
-  const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
-  const [loading, setLoading] = useState(true);
+interface MaquinaFormModalProps {
+  maquinaToEdit?: Maquina | null; // Pass machine data for editing, null/undefined for adding
+  onSuccess: () => void; // Callback function after successful save/update
+  triggerButton: React.ReactNode; // The button that opens the modal
+}
+
+const MaquinaFormModal: React.FC<MaquinaFormModalProps> = ({ maquinaToEdit, onSuccess, triggerButton }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [tipo, setTipo] = useState<'máquina' | 'implemento' | 'veículo' | ''>('');
+  const [numeroFrota, setNumeroFrota] = useState('');
+  const [dataAquisicao, setDataAquisicao] = useState('');
+  const [tipoControle, setTipoControle] = useState<'hodômetro' | 'horímetro' | ''>('');
+  const [nome, setNome] = useState('');
+  const [marca, setMarca] = useState('');
+  const [status, setStatus] = useState<'ativo' | 'inativo' | ''>('ativo'); // Default to 'ativo'
   const [error, setError] = useState<string | null>(null);
-  const [maquinasFiltro, setMaquinasFiltro] = useState<MaquinaFiltro[]>([]);
-  const [manutencaoToEdit, setManutencaoToEdit] = useState<Manutencao | null>(null);
-  const [filterMaquinaId, setFilterMaquinaId] = useState('todas');
-  const [filterTipo, setFilterTipo] = useState('todos');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth(); // Get user for authorization if needed
 
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const isEditing = Boolean(maquinaToEdit);
 
-  // Fetch machines for filter dropdown
+  // Populate form when editing
   useEffect(() => {
-    async function loadMaquinas() {
-      try {
-        const resp = await api.get('/api/maquinas');
-        const data = resp.data;
-        setMaquinasFiltro(Array.isArray(data) ? data : (data.maquinas || []));
-      } catch (err) {
-        console.error('Erro ao buscar máquinas para filtro:', err);
-      }
+    if (isEditing && maquinaToEdit) {
+      setTipo(maquinaToEdit.tipo as any);
+      setNumeroFrota(maquinaToEdit.numero_frota);
+      // Ensure date is in YYYY-MM-DD format for the input type="date"
+      setDataAquisicao(maquinaToEdit.data_aquisicao.split('T')[0]);
+      setTipoControle(maquinaToEdit.tipo_controle as any);
+      setNome(maquinaToEdit.nome);
+      setMarca(maquinaToEdit.marca || '');
+      setStatus(maquinaToEdit.status as any);
+    } else {
+      // Reset form for adding
+      resetForm();
     }
-    loadMaquinas();
-  }, []);
+  }, [maquinaToEdit, isEditing, isOpen]); // Re-run when modal opens or maquinaToEdit changes
 
-  // Read initial filter from URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const mid = params.get('maquina_id');
-    if (mid) setFilterMaquinaId(mid);
-  }, [location.search]);
-
-  // Fetch maintenances when filters change
-  useEffect(() => {
-    async function loadManutencoes() {
-      setLoading(true);
-      setError(null);
-      try {
-        const params: Record<string, string> = {};
-        if (filterMaquinaId !== 'todas') params.maquina_id = filterMaquinaId;
-        if (filterTipo !== 'todos') params.tipo_manutencao = filterTipo;
-        if (filterStartDate) params.start_date = filterStartDate;
-        if (filterEndDate) params.end_date = filterEndDate;
-        const resp = await api.get('/api/manutencoes', { params });
-        const data = resp.data;
-        setManutencoes(Array.isArray(data) ? data : (data.manutencoes || []));
-      } catch (err: any) {
-        console.error('Erro ao buscar manutenções:', err);
-        setError(err.response?.data?.message || 'Não foi possível carregar as manutenções.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadManutencoes();
-  }, [filterMaquinaId, filterTipo, filterStartDate, filterEndDate]);
-
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Deseja realmente excluir esta manutenção?')) return;
-    try {
-      await api.delete(`/api/manutencoes/${id}`);
-      setManutencoes(prev => prev.filter(m => m.id !== id));
-    } catch (err) {
-      console.error('Erro ao excluir manutenção:', err);
-      alert('Erro ao excluir.');
-    }
+  const resetForm = () => {
+    setTipo('');
+    setNumeroFrota('');
+    setDataAquisicao('');
+    setTipoControle('');
+    setNome('');
+    setMarca('');
+    setStatus('ativo');
+    setError(null);
   };
 
-  const canAdd = ['gestor', 'mecanico'].includes(user?.role || '');
-  const canEdit = user?.role === 'gestor';
-  const canExport = ['gestor', 'administrador'].includes(user?.role || '');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-  const handleExport = async (format: 'excel' | 'pdf') => {
-    const params = new URLSearchParams();
-    if (filterMaquinaId !== 'todas') params.append('maquina_id', filterMaquinaId);
-    if (filterTipo !== 'todos') params.append('tipo_manutencao', filterTipo);
-    if (filterStartDate) params.append('start_date', filterStartDate);
-    if (filterEndDate) params.append('end_date', filterEndDate);
-    
+    if (!tipo || !numeroFrota || !dataAquisicao || !tipoControle || !nome || !status) {
+        setError("Todos os campos obrigatórios devem ser preenchidos.");
+        setLoading(false);
+        return;
+    }
+
+
+    const maquinaData = {
+      tipo,
+      numero_frota: numeroFrota,
+      data_aquisicao: dataAquisicao,
+      tipo_controle: tipoControle,
+      nome,
+      marca: marca || null, // Send null if empty
+      status,
+    };
+
     try {
-      const resp = await api.get(`/export/manutencoes/${format}`, { params });
-      const blob = new Blob([resp.data], { type: resp.headers['content-type'] });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      const cd = resp.headers['content-disposition'] || '';
-      const match = cd.match(/filename="?(.+?)"?$/i);
-      link.download = match ? match[1] : `export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-      link.href = url;
-      link.setAttribute('download', 'manutencoes.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // TODO: Add authentication headers if required by the API
+      // const config = { headers: { Authorization: `Bearer ${token}` } };
+      if (isEditing && maquinaToEdit) {
+        await axios.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
+      } else {
+        await axios.post('/api/maquinas', maquinaData);
+      }
+      onSuccess(); // Call the success callback (e.g., refetch machine list)
+      setIsOpen(false); // Close modal on success
+      resetForm(); // Reset form fields
     } catch (err: any) {
-      console.error(`Erro ao exportar ${format}:`, err);
-      setError(err.response?.data?.message || `Erro ao exportar ${format}.`);
+      console.error("Erro ao salvar máquina:", err);
+      setError(err.response?.data?.message || `Não foi possível ${isEditing ? 'atualizar' : 'adicionar'} a máquina.`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Registro de Manutenções</h1>
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erro</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-md bg-gray-50">
-        <Select value={filterMaquinaId} onValueChange={setFilterMaquinaId}>
-          <SelectTrigger><SelectValue placeholder="Máquina" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas</SelectItem>
-            {maquinasFiltro.map(m => (
-              <SelectItem key={m.id} value={String(m.id)}>{m.nome} ({m.numero_frota})</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterTipo} onValueChange={setFilterTipo}>
-          <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="preventiva">Preventiva</SelectItem>
-            <SelectItem value="corretiva">Corretiva</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input
-          type="date"
-          value={filterStartDate}
-          onChange={e => setFilterStartDate(e.target.value)}
-          className="!text-black"
-        />
-        <Input
-          type="date"
-          value={filterEndDate}
-          onChange={e => setFilterEndDate(e.target.value)}
-          className="!text-black"
-        />
-      </div>
-      {/* Ações */}
-      <div className="flex justify-between items-center">
-        {canAdd && (
-          <ManutencaoFormModal
-            manutencaoToEdit={null}
-            onSuccess={() => {/* refetch dentro do modal */}}
-            triggerButton={
-              <Button className="flex items-center gap-1">
-                <PlusCircle size={16} /> Registrar
-              </Button>
-            }
-          />
-        )}
-        {canExport && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleExport('excel')} className="flex items-center gap-1">
-              <FileDown size={16} /> Excel
-            </Button>
-            <Button variant="outline" onClick={() => handleExport('pdf')} className="flex items-center gap-1">
-              <FileDown size={16} /> PDF
-            </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {triggerButton}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? 'Editar Máquina' : 'Adicionar Nova Máquina'}</DialogTitle>
+          <DialogDescription>
+            Preencha os detalhes da máquina abaixo.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          {error && (
+            <Alert variant="destructive" className="col-span-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo *</Label>
+              <Select value={tipo} onValueChange={(value) => setTipo(value as any)} required>
+                <SelectTrigger id="tipo">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="máquina">Máquina</SelectItem>
+                  <SelectItem value="implemento">Implemento</SelectItem>
+                  <SelectItem value="veículo">Veículo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numeroFrota">Número da Frota *</Label>
+              <Input
+                id="numeroFrota"
+                value={numeroFrota}
+                onChange={(e) => setNumeroFrota(e.target.value)}
+                required
+                className="!text-black"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataAquisicao">Data de Aquisição *</Label>
+              <Input
+                id="dataAquisicao"
+                type="date"
+                value={dataAquisicao}
+                onChange={(e) => setDataAquisicao(e.target.value)}
+                required
+                className="!text-black"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tipoControle">Tipo de Controle *</Label>
+              <Select value={tipoControle} onValueChange={(value) => setTipoControle(value as any)} required>
+                <SelectTrigger id="tipoControle">
+                  <SelectValue placeholder="Selecione o controle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hodômetro">Hodômetro</SelectItem>
+                  <SelectItem value="horímetro">Horímetro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nome">Nome *</Label>
+              <Input
+                id="nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required
+                className="!text-black"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marca">Marca</Label>
+              <Input
+                id="marca"
+                value={marca}
+                onChange={(e) => setMarca(e.target.value)}
+                className="!text-black"
+              />
+            </div>
+             <div className="space-y-2 col-span-2"> {/* Status ocupa a linha inteira */}
+              <Label htmlFor="status">Status *</Label>
+              <Select value={status} onValueChange={(value) => setStatus(value as any)} required>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="inativo">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        )}
-      </div>
-      {/* Tabela */}
-      {loading ? (
-        <p>Carregando...</p>
-      ) : (
-        <Table>
-          <TableCaption>Lista de manutenções.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Máquina</TableHead>
-              <TableHead>Entrada</TableHead>
-              <TableHead>Horímetro</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Saída</TableHead>
-              <TableHead>Custo</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {manutencoes.length > 0 ? (
-              manutencoes.map(m => (
-                <TableRow key={m.id}>
-                  <TableCell>{m.maquina_nome}</TableCell>
-                  <TableCell>{new Date(m.data_entrada).toLocaleString('pt-BR')}</TableCell>
-                  <TableCell>{m.horimetro_hodometro}</TableCell>
-                  <TableCell>{m.tipo_manutencao}</TableCell>
-                  <TableCell>
-                    {m.categoria_servico}
-                    {m.categoria_servico === 'Outros' && m.categoria_outros_especificacao ? `(${m.categoria_outros_especificacao})` : ''}
-                  </TableCell>
-                  <TableCell>{m.responsavel_servico}</TableCell>
-                  <TableCell>{m.data_saida ? new Date(m.data_saida).toLocaleString('pt-BR') : '-'}</TableCell>
-                  <TableCell>{m.custo !== null ? `R$ ${m.custo.toFixed(2).replace('.', ',')}` : '-'}</TableCell>
-                  <TableCell className="text-right space-x-1">
-                    {canEdit && (
-                      <>
-                        <ManutencaoFormModal
-                          manutencaoToEdit={m}
-                          onSuccess={() => {/* refetch modal */}}
-                          triggerButton={<Button variant="outline" size="sm"><Edit size={14} /></Button>}
-                        />
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(m.id)}><Trash size={14} /></Button>
-                      </>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center">Nenhuma manutenção encontrada.</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      )}
-    </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button type="submit" disabled={loading}>
+              {loading ? (isEditing ? 'Salvando...' : 'Adicionando...') : (isEditing ? 'Salvar Alterações' : 'Adicionar Máquina')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default ManutencoesPage;
+export default MaquinaFormModal;
+
