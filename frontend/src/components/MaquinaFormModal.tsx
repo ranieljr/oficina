@@ -99,9 +99,9 @@ const MaquinaFormModal: React.FC<MaquinaFormModalProps> = ({ maquinaToEdit, onSu
       if (isEditing && maquinaToEdit) {
         console.log("API:", api.defaults.baseURL);
         console.log("Env:", import.meta.env.VITE_API_URL);
-        await axios.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
+        await api.put(`/api/maquinas/${maquinaToEdit.id}`, maquinaData);
       } else {
-        await axios.post('/api/maquinas', maquinaData);
+        await api.post('/api/maquinas', maquinaData);
       }
       onSuccess(); // Call the success callback (e.g., refetch machine list)
       setIsOpen(false); // Close modal on success
