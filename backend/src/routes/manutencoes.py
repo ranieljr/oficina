@@ -27,9 +27,9 @@ def create_manutencao():
     errors = {}
     try:
         # Validação e conversão de campos
-        maquina_id = data.get("maquina_id")
+        maquina_id = data.get("Maquina_id")
         if not maquina_id:
-            errors["maquina_id"] = "Máquina é obrigatória."
+            errors["Maquina_id"] = "Máquina é obrigatória."
         else:
             maquina = Maquina.query.get(maquina_id)
             if not maquina:
@@ -183,18 +183,18 @@ def update_manutencao(id):
                 setattr(m, field, data[field])
 
         # Enum: tipo_manutencao
-        if "tipo_manutencao" in request.args.put:
+        if "tipo_manutencao" in data:
             try:
                 m.tipo_manutencao = TipoManutencaoEnum(data["tipo_manutencao"].upper())
             except ValueError:
-                return jsonify({"message": f"Tipo de manutenção inválido: {request.args.put['tipo_manutencao']}"}), 400
+                return jsonify({"message": f"Tipo de manutenção inválido: {data['tipo_manutencao']}"}), 400
 
         # Enum: categoria_servico
-        if "categoria_servico" in request.args.put:
+        if "categoria_servico" in data:
             try:
-                m.categoria_servico = CategoriaServicoEnum(request.args.put["categoria_servico"])
+                m.categoria_servico = CategoriaServicoEnum(data["categoria_servico"])
             except ValueError:
-                return jsonify({"message": f"Categoria de serviço inválida: {request.args.put['categoria_servico']}"}), 400
+                return jsonify({"message": f"Categoria de serviço inválida: {data['categoria_servico']}"}), 400
 
         db.session.commit()
         return jsonify({"message": "Manutenção atualizada com sucesso"}), 200
