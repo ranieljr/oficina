@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, request, jsonify, make_response
 from flask_cors import CORS
+from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 # TODO: Implement JWT or Flask-Login for session management
 # from flask_login import login_user, logout_user, login_required, current_user
@@ -101,3 +102,22 @@ def register():
 @auth_bp.route("/check", methods=["GET"])
 def check_auth():
     return jsonify({"authenticated": True}), 200
+
+def role_required(*roles):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            # Libera preflight (CORS)
+            if request.method == "OPTIONS":
+                return "", 204
+
+            # Simulação de autenticação (modo de teste)
+            # Na produção, você deverá pegar o usuário do token ou sessão
+            user_role = request.headers.get("X-Role") or request.args.get("role") or "mecanico"
+
+            if user_role not in roles:
+                return jsonify({"message": "Acesso negado"}), 403
+
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
