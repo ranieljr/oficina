@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Backend base URL via .env
 export const API_BASE = import.meta.env.VITE_API_URL;
-
+  'https://lauf-backend.onrender.com';
 // Endpoints centralizados
 export const ENDPOINTS = {
   login: `${API_BASE}/api/auth/login`,
