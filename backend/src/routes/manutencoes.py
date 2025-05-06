@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from flask import Blueprint, request, jsonify
 from src.models.models import db, Manutencao, Maquina, TipoManutencaoEnum, CategoriaServicoEnum
 from datetime import datetime
@@ -174,13 +175,30 @@ def get_manutencao(id):
 def update_manutencao(id):
     data = request.get_json() or {}
     m = Manutencao.query.get_or_404(id)
+    # Atualiza campos permitidos dinamicamente
     try:
-        # Atualiza campos permitidos dinamicamente
-        for field in ["horimetro_hodometro", "data_entrada", "data_saida", "tipo_manutencao", "categoria_servico", "comentario", "responsavel_servico", "custo"]:
+        # Campos simples
+        for field in ["horimetro_hodometro", "data_entrada", "data_saida", "comentario", "responsavel_servico", "custo"]:
             if field in data:
                 setattr(m, field, data[field])
+
+        # Enum: tipo_manutencao
+        if "tipo_manutencao" in data:
+            try:
+                m.tipo_manutencao = TipoManutencaoEnum(data["tipo_manutencao"].upper())
+            except ValueError:
+                return jsonify({"message": f"Tipo de manutenção inválido: {data['tipo_manutencao']}"}), 400
+
+        # Enum: categoria_servico
+        if "categoria_servico" in data:
+            try:
+                m.categoria_servico = CategoriaServicoEnum(data["categoria_servico"])
+            except ValueError:
+                return jsonify({"message": f"Categoria de serviço inválida: {data['categoria_servico']}"}), 400
+
         db.session.commit()
         return jsonify({"message": "Manutenção atualizada com sucesso"}), 200
+
     except Exception:
         db.session.rollback()
         logging.exception("Erro ao atualizar manutenção")
