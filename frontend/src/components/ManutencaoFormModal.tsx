@@ -304,8 +304,8 @@ const ManutencaoFormModal: React.FC<ManutencaoFormModalProps> = ({ manutencaoToE
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="preventiva">Preventiva</SelectItem>
-                  <SelectItem value="corretiva">Corretiva</SelectItem>
+                  <SelectItem value="preventiva">preventiva</SelectItem>
+                  <SelectItem value="corretiva">corretiva</SelectItem>
                 </SelectContent>
               </Select>
               {fieldErrors.tipo_manutencao && <p className="text-sm text-red-500 mt-1">{fieldErrors.tipo_manutencao}</p>}

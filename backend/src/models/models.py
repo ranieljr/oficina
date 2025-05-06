@@ -39,13 +39,23 @@ class RoleEnum(enum.Enum):
 
 class Maquina(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    tipo = db.Column(Enum(TipoMaquinaEnum), nullable=False)
+    tipo = db.Column(
+        Enum(TipoMaquinaEnum), 
+        nullable=False
+    )
     numero_frota = db.Column(db.String(50), unique=True, nullable=False)
     data_aquisicao = db.Column(db.Date, nullable=False)
-    tipo_controle = db.Column(Enum(TipoControleEnum), nullable=False)
+    tipo_controle = db.Column(
+        Enum(TipoControleEnum), 
+        nullable=False
+    )
     nome = db.Column(db.String(100), nullable=False)
     marca = db.Column(db.String(100))
-    status = db.Column(Enum(StatusMaquinaEnum), default=StatusMaquinaEnum.ATIVO, nullable=False)
+    status = db.Column(
+        Enum(StatusMaquinaEnum), 
+        default=StatusMaquinaEnum.ATIVO, 
+        nullable=False
+    )
     manutencoes = db.relationship('Manutencao', backref='maquina', lazy=True)
 
 class Manutencao(db.Model):
@@ -54,8 +64,14 @@ class Manutencao(db.Model):
     horimetro_hodometro = db.Column(db.Float, nullable=False)
     data_entrada = db.Column(db.DateTime, nullable=False)
     data_saida = db.Column(db.DateTime)
-    tipo_manutencao = db.Column(Enum(TipoManutencaoEnum), nullable=False)
-    categoria_servico = db.Column(Enum(CategoriaServicoEnum), nullable=False)
+    tipo_manutencao = db.Column(
+        Enum(TipoManutencaoEnum), 
+        nullable=False
+    )
+    categoria_servico = db.Column(
+        Enum(CategoriaServicoEnum), 
+        nullable=False
+    )
     categoria_outros_especificacao = db.Column(db.String(255)) # Para quando a categoria for "Outros"
     comentario = db.Column(db.Text)
     responsavel_servico = db.Column(db.String(100), nullable=False)
@@ -65,7 +81,10 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False) # Armazenar hash da senha
-    role = db.Column(Enum(RoleEnum), nullable=False)
+    role = db.Column(
+        Enum(RoleEnum), 
+        nullable=False
+    )
 
     def __repr__(self):
         return f'<Usuario {self.username}>'
