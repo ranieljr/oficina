@@ -29,9 +29,13 @@ app = Flask(
     static_url_path=""
 )
 
-CORS(app, resources={
-    r'/api/*': {"origins": "*"}, 
-    })
+CORS(
+    app,
+    origins=ALLOWED_ORIGINS,
+    supports_credentials=True,
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 
 # 1) Carrega Config padrão
 app.config.from_object(Config)
