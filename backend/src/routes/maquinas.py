@@ -3,6 +3,7 @@ from src.models.models import db, Maquina, TipoMaquinaEnum, TipoControleEnum, St
 from datetime import datetime
 from functools import wraps
 
+
 maquinas_bp = Blueprint("maquinas_bp", __name__)
 
 # Decorator placeholder para simular verificação de role (substituir por real)
