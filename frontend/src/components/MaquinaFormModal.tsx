@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; // Assuming authentication context is needed for API calls
-import { api } from '@/api';
+import { api } from '@/services/api';
 
 // Interface for Maquina data (matching backend)
 interface Maquina {
