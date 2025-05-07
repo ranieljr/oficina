@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from src.models.models import db, Manutencao, Maquina, TipoManutencaoEnum, CategoriaServicoEnum
 from datetime import datetime
 from functools import wraps
@@ -24,6 +24,7 @@ def role_required(role):
 # @role_required(["gestor", "mecanico"])
 def create_manutencao():
     data = request.get_json() or {}
+    current_app.logger.debug('Payload POST /manutencoes: %s', data)
     errors = {}
     try:
         # Validação e conversão de campos
