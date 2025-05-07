@@ -28,9 +28,9 @@ def create_manutencao():
     errors = {}
     try:
         # Validação e conversão de campos
-        maquina_id = data.get("Maquina_id")
+        maquina_id = data.get("maquina_id")
         if not maquina_id:
-            errors["Maquina_id"] = "Máquina é obrigatória."
+            errors["maquina_id"] = "Máquina é obrigatória."
         else:
             maquina = Maquina.query.get(maquina_id)
             if not maquina:
