@@ -19,7 +19,7 @@ def role_required(role):
     return decorator
 
 # Rota para criar uma nova manutenção (Gestor, Mecânico)
-@manutencoes_bp.route("/manutencoes", methods=["POST"])
+@manutencoes_bp.route("/api/manutencoes", methods=["POST"])
 # @login_required
 # @role_required(["gestor", "mecanico"])
 def create_manutencao():
@@ -110,7 +110,7 @@ def create_manutencao():
         return jsonify({"message": "Erro interno ao registrar manutenção. Contate o suporte."}), 500
 
 # Rota para listar manutenções (com filtros)
-@manutencoes_bp.route("/manutencoes", methods=["GET"])
+@manutencoes_bp.route("/api/manutencoes", methods=["GET"])
 def get_manutencoes():
     try:
         query = Manutencao.query
@@ -146,7 +146,7 @@ def get_manutencoes():
         return jsonify({"message": "Erro ao buscar manutenções"}), 500
 
 # Rota para buscar uma manutenção específica
-@manutencoes_bp.route("/manutencoes/<int:id>", methods=["GET"])
+@manutencoes_bp.route("/api/manutencoes/<int:id>", methods=["GET"])
 def get_manutencao(id):
     try:
         m = Manutencao.query.get_or_404(id)
@@ -170,7 +170,7 @@ def get_manutencao(id):
         return jsonify({"message": "Erro ao buscar manutenção"}), 500
 
 # Rota para atualizar uma manutenção (Apenas Gestor)
-@manutencoes_bp.route("/manutencoes/<int:id>", methods=["PUT"])
+@manutencoes_bp.route("/api/manutencoes/<int:id>", methods=["PUT"])
 def update_manutencao(id):
     data = request.get_json() or {}
     m = Manutencao.query.get_or_404(id)
@@ -204,7 +204,7 @@ def update_manutencao(id):
         return jsonify({"message": "Erro ao atualizar manutenção"}), 500
 
 # Rota para excluir uma manutenção
-@manutencoes_bp.route("/manutencoes/<int:id>", methods=["DELETE"])
+@manutencoes_bp.route("/api/manutencoes/<int:id>", methods=["DELETE"])
 @role_required("gestor")
 def delete_manutencao(id):
     try:
